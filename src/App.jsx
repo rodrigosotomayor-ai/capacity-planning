@@ -801,22 +801,38 @@ export default function App(){
     const allocs=data.allocs.filter(a=>a.month_id===monthId);
     const getH=(pid,projId)=>{const a=allocs.find(x=>x.person_id===pid&&x.project_id===projId);return a?parseFloat(a.hours):0;};
     // For shared profiles: sum allocations across ALL months with same year+month_num
-    // This gives true total occupancy across teams
+    // Only count projects that are actually in each month's project list
     const sameCalendarMonthIds=new Set(
       data.months
         .filter(m=>m.year===month.year&&m.month_num===month.month_num)
         .map(m=>m.id)
     );
+    // Build a set of valid (month_id, project_id) pairs from cap_month_projects
+    const validMonthProj=new Set(
+      (data.monthProjects||[])
+        .filter(mp=>sameCalendarMonthIds.has(mp.month_id))
+        .map(mp=>mp.month_id+"_"+mp.project_id)
+    );
+    // pTotals: cross-team total, only active projects
     const pTotals=Object.fromEntries(people.map(p=>[
       p.id,
       data.allocs
-        .filter(a=>a.person_id===p.id&&sameCalendarMonthIds.has(a.month_id))
+        .filter(a=>
+          a.person_id===p.id&&
+          sameCalendarMonthIds.has(a.month_id)&&
+          validMonthProj.has(a.month_id+"_"+a.project_id)
+        )
         .reduce((s,a)=>s+parseFloat(a.hours),0)
     ]));
-    // Track which allocs are from OTHER teams (for display in grid)
+    // pThisTeamTotals: this month only, only active projects
     const pThisTeamTotals=Object.fromEntries(people.map(p=>[
       p.id,
-      allocs.filter(a=>a.person_id===p.id).reduce((s,a)=>s+parseFloat(a.hours),0)
+      allocs
+        .filter(a=>
+          a.person_id===p.id&&
+          monthProjIds.has(a.project_id)
+        )
+        .reduce((s,a)=>s+parseFloat(a.hours),0)
     ]));
     const isMonthEmpty=data.avail.filter(a=>a.month_id===monthId).length===0;
     return{teamObj,month,people,projects,allTeamProjects,allocs,getH,pTotals,pThisTeamTotals,isMonthEmpty,monthProjIds};
