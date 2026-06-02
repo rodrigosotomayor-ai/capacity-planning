@@ -819,7 +819,7 @@ export default function App(){
       allocs.filter(a=>a.person_id===p.id).reduce((s,a)=>s+parseFloat(a.hours),0)
     ]));
     const isMonthEmpty=data.avail.filter(a=>a.month_id===monthId).length===0;
-    return{teamObj,month,people,projects,allTeamProjects,allocs,getH,pTotals,isMonthEmpty,monthProjIds};
+    return{teamObj,month,people,projects,allTeamProjects,allocs,getH,pTotals,pThisTeamTotals,isMonthEmpty,monthProjIds};
   }
 
   function teamMonths(){if(!data)return[];const tid=data.teams.find(t=>t.slug===team)?.id;return data.months.filter(m=>m.team_id===tid).sort((a,b)=>b.year-a.year||b.month_num-a.month_num);}
@@ -1052,7 +1052,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
 
         {/* CAPACITY GRID */}
         {view==="matrix"&&sub==="grid"&&cur&&(()=>{
-          const{people,projects,getH,pTotals,isMonthEmpty}=cur;
+          const{people,projects,getH,pTotals,pThisTeamTotals,isMonthEmpty}=cur;
           if(isMonthEmpty)return(<div style={{...glassHi,padding:28,maxWidth:540,margin:"20px auto",textAlign:"center"}}><i className="ti ti-table-off" style={{fontSize:40,color:A,display:"block",marginBottom:14}}/><div style={{fontWeight:700,fontSize:16,color:"#fff",marginBottom:8}}>Mes sin datos</div><div style={{fontSize:13,color:T.m,marginBottom:20}}>Este mes no tiene disponibilidad configurada.</div><div style={{display:"flex",gap:10,justifyContent:"center"}}><button onClick={()=>initializeMonth(monthId,cur.teamObj)} style={BP}><i className="ti ti-users-plus"/>Inicializar con equipo completo</button><button onClick={()=>setSub("config")} style={BG}><i className="ti ti-settings"/>Configurar manualmente</button></div></div>);
           return(<div style={{...glass,overflowX:"auto"}}><table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}><thead><tr><th style={{padding:"8px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",borderRight:"1px solid rgba(255,255,255,0.06)",textAlign:"left",minWidth:188,position:"sticky",left:0,zIndex:3,background:"var(--c-sticky)",fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".06em"}}>Proyecto</th><th style={{padding:"8px 8px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontSize:10,fontWeight:700,color:T.d,minWidth:52,textAlign:"center",background:"var(--c-sticky)"}}>Total</th>{people.map(p=>{
               const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);
@@ -1068,8 +1068,29 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
                 {isShared&&otherH>0&&<div style={{fontSize:8,color:"rgba(255,165,2,0.6)",marginTop:0}}>+{fmt(otherH)}h ext.</div>}
               </th>);
             })}</tr></thead><tbody>{projects.map(pr=>{const rowTot=people.reduce((s,p)=>s+getH(p.id,pr.id),0);const fee=pr.type!=="proyecto";const dot={fee:A,proyecto:"#2ED573",interno:T.d}[pr.type];return(<tr key={pr.id} style={{background:fee?"var(--c-alt)":"transparent"}}><td style={{padding:"5px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",borderRight:"1px solid rgba(255,255,255,0.05)",position:"sticky",left:0,zIndex:1,background:fee?"var(--c-sticky2)":"var(--c-sticky)",minWidth:188,maxWidth:188,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:fee?T.m:T.p}}><span style={{width:6,height:6,borderRadius:"50%",background:dot,display:"inline-block",marginRight:8,verticalAlign:"middle"}}/>{pr.name}</td><td style={{padding:"5px 8px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",color:T.d,fontSize:11}}>{rowTot>0?fmt(rowTot):"—"}</td>{people.map(p=>{const h=getH(p.id,pr.id),ck=`${pr.id}_${p.id}`,editing=editCell===ck;return(<td key={p.id} onClick={()=>!editing&&setEditCell(ck)} style={{padding:"5px 6px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",cursor:"pointer",minWidth:62,color:h>0?"#fff":"rgba(255,255,255,0.12)",fontWeight:h>0?700:400,background:editing?"rgba(57,18,250,0.25)":"transparent"}}>{editing?<input autoFocus defaultValue={h||""} type="number" min="0" step="0.5" onBlur={e=>{upsertAlloc(monthId,p.id,pr.id,e.target.value);setEditCell(null);}} onKeyDown={e=>{if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditCell(null);}} style={{...INP,width:54,padding:"3px 6px",textAlign:"center"}}/>:h>0?h:"·"}</td>);})}</tr>);})}
-          <tr style={{background:"rgba(57,18,250,0.08)"}}><td style={{padding:"8px 12px",position:"sticky",left:0,background:"var(--c-sticky3)",zIndex:1,fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".05em",borderTop:"1px solid rgba(57,18,250,0.3)"}}>Total asignado</td><td style={{padding:"8px 8px",textAlign:"center",fontFamily:"monospace",color:"#fff",fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.3)"}}>{fmt(Object.values(pTotals).reduce((a,b)=>a+b,0))}</td>{people.map(p=>{const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);return<td key={p.id} style={{padding:"8px 6px",textAlign:"center",background:pTotals[p.id]>0?ob(p2/100):"transparent",color:pTotals[p.id]>0?col:T.d,fontFamily:"monospace",fontSize:11,fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.2)"}}>{pTotals[p.id]>0?fmt(pTotals[p.id]):"—"}</td>;})}
-          </tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas disponibles</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:T.d}}>{people.reduce((s,p)=>s+p.avail_h,0)}</td>{people.map(p=><td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:T.d}}>{p.avail_h}</td>)}</tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas libres</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:"#2ED573"}}>{fmt(people.reduce((s,p)=>s+Math.max(0,p.avail_h-pTotals[p.id]),0))}</td>{people.map(p=>{const l=p.avail_h-pTotals[p.id];return<td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:l<0?"#FF4757":l===0?"rgba(255,255,255,0.3)":"#2ED573",fontWeight:l<0?700:400}}>{fmt(l)}</td>;})}</tr></tbody></table></div>);
+          <tr style={{background:"rgba(57,18,250,0.08)"}}><td style={{padding:"8px 12px",position:"sticky",left:0,background:"var(--c-sticky3)",zIndex:1,fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".05em",borderTop:"1px solid rgba(57,18,250,0.3)"}}>Total asignado</td>
+              <td style={{padding:"8px 8px",textAlign:"center",fontFamily:"monospace",color:"#fff",fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.3)"}}>{fmt(people.reduce((s,p)=>s+(pThisTeamTotals[p.id]||0),0))}</td>
+              {people.map(p=>{
+                const thisH=pThisTeamTotals[p.id]||0;
+                const totalH=pTotals[p.id]||0; // cross-team total for color
+                const p2=pct(totalH,p.avail_h),col=oc(p2/100);
+                const isShared=totalH>thisH;
+                return<td key={p.id} style={{padding:"8px 6px",textAlign:"center",background:thisH>0?ob(p2/100):"transparent",color:thisH>0?col:T.d,fontFamily:"monospace",fontSize:11,fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.2)"}}>
+                  {thisH>0?fmt(thisH):"—"}
+                  {isShared&&<div style={{fontSize:7,color:"rgba(255,165,2,0.7)",fontWeight:400,lineHeight:1.2}}>{fmt(totalH)}h total</div>}
+                </td>;
+              })}
+          </tr>
+          <tr>
+            <td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas disponibles</td>
+            <td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:T.d}}>{people.reduce((s,p)=>s+p.avail_h,0)}</td>
+            {people.map(p=><td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:T.d}}>{p.avail_h}</td>)}
+          </tr>
+          <tr>
+            <td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas libres</td>
+            <td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:"#2ED573"}}>{fmt(people.reduce((s,p)=>s+Math.max(0,p.avail_h-(pTotals[p.id]||0)),0))}</td>
+            {people.map(p=>{const l=p.avail_h-(pTotals[p.id]||0);return<td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:l<0?"#FF4757":l===0?"var(--c-dim)":"#2ED573",fontWeight:l<0?700:400}}>{fmt(l)}</td>;})}
+          </tr></tbody></table></div>);
         })()}
 
         {/* CAPACITY CARDS */}
