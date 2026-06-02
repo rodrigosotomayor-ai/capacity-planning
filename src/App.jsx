@@ -813,25 +813,26 @@ export default function App(){
         .filter(mp=>sameCalendarMonthIds.has(mp.month_id))
         .map(mp=>mp.month_id+"_"+mp.project_id)
     );
-    // pTotals: cross-team total, only active projects
+    // pTotals: cross-team total — only active projects from any team
+    const activeProjectIds=new Set(data.projects.filter(p=>p.is_active).map(p=>p.id));
     const pTotals=Object.fromEntries(people.map(p=>[
       p.id,
       data.allocs
         .filter(a=>
           a.person_id===p.id&&
           sameCalendarMonthIds.has(a.month_id)&&
-          validMonthProj.has(a.month_id+"_"+a.project_id)
+          validMonthProj.has(a.month_id+"_"+a.project_id)&&
+          activeProjectIds.has(a.project_id)
         )
         .reduce((s,a)=>s+parseFloat(a.hours),0)
     ]));
-    // pThisTeamTotals: this month only, only active projects
+    // pThisTeamTotals: only projects actually visible in the grid
+    // Use `projects` (already filtered by team+active+monthProjs) — exact match with grid rows
+    const visibleProjIds=new Set(projects.map(p=>p.id));
     const pThisTeamTotals=Object.fromEntries(people.map(p=>[
       p.id,
       allocs
-        .filter(a=>
-          a.person_id===p.id&&
-          monthProjIds.has(a.project_id)
-        )
+        .filter(a=>a.person_id===p.id&&visibleProjIds.has(a.project_id))
         .reduce((s,a)=>s+parseFloat(a.hours),0)
     ]));
     const isMonthEmpty=data.avail.filter(a=>a.month_id===monthId).length===0;
