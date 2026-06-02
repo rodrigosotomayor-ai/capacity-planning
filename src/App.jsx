@@ -2,6 +2,59 @@ import { useState, useEffect, useCallback } from "react";
 import * as XLSX from "xlsx";
 
 const SB_URL = "https://ybowftbdwtxzatfsdzot.supabase.co";
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+const THEME_KEY = "cap_theme";
+function applyTheme(dark) {
+  const r = document.documentElement;
+  if (dark) {
+    r.setAttribute("data-theme","dark");
+    r.style.background = "#070714";
+  } else {
+    r.setAttribute("data-theme","light");
+    r.style.background = "#F0F4F8";
+  }
+}
+// Inject CSS variables once
+(function injectThemeVars() {
+  if (document.getElementById("cap-theme-vars")) return;
+  const s = document.createElement("style");
+  s.id = "cap-theme-vars";
+  s.textContent = `
+    :root, [data-theme="dark"] {
+      --c-bg:#070714; --c-card:rgba(255,255,255,0.06); --c-card-hi:rgba(57,18,250,0.12);
+      --c-border:rgba(255,255,255,0.10); --c-border-hi:rgba(57,18,250,0.35);
+      --c-tp:#ffffff; --c-tm:rgba(255,255,255,0.55); --c-td:rgba(255,255,255,0.28);
+      --c-input:rgba(255,255,255,0.07); --c-input-b:rgba(255,255,255,0.15);
+      --c-btn-bg:rgba(255,255,255,0.07); --c-btn-c:rgba(255,255,255,0.55); --c-btn-b:rgba(255,255,255,0.12);
+      --c-sticky:rgba(7,7,20,0.97); --c-sticky2:rgba(7,7,28,0.97); --c-sticky3:rgba(7,7,30,0.98);
+      --c-overlay:rgba(0,0,0,0.65); --c-subtle:rgba(255,255,255,0.04); --c-subtle2:rgba(255,255,255,0.06);
+      --c-div:rgba(255,255,255,0.08); --c-div2:rgba(255,255,255,0.05); --c-div3:rgba(255,255,255,0.06);
+      --c-chart-g:rgba(255,255,255,0.06); --c-chart-l:rgba(255,255,255,0.45); --c-chart-l2:rgba(255,255,255,0.5);
+      --c-chart-l3:rgba(255,255,255,0.3); --c-chart-l4:rgba(255,255,255,0.4); --c-chart-l5:rgba(255,255,255,0.35);
+      --c-alt:rgba(255,255,255,0.02); --c-dim:rgba(255,255,255,0.2); --c-dim2:rgba(255,255,255,0.25);
+      --c-sel-bg:rgba(10,8,30,0.85); --c-shadow:none; --c-modal-blur:blur(8px);
+      --c-text-normal:rgba(255,255,255,0.7); --c-text-em:rgba(255,255,255,0.6);
+    }
+    [data-theme="light"] {
+      --c-bg:#F0F4F8; --c-card:#FFFFFF; --c-card-hi:#EEF2FF;
+      --c-border:rgba(0,0,0,0.08); --c-border-hi:rgba(57,18,250,0.20);
+      --c-tp:#111827; --c-tm:#6B7280; --c-td:#9CA3AF;
+      --c-input:#F9FAFB; --c-input-b:rgba(0,0,0,0.12);
+      --c-btn-bg:#F3F4F6; --c-btn-c:#374151; --c-btn-b:rgba(0,0,0,0.10);
+      --c-sticky:#FFFFFF; --c-sticky2:#F9FAFB; --c-sticky3:#F3F4F6;
+      --c-overlay:rgba(0,0,0,0.45); --c-subtle:rgba(0,0,0,0.025); --c-subtle2:rgba(0,0,0,0.03);
+      --c-div:rgba(0,0,0,0.07); --c-div2:rgba(0,0,0,0.05); --c-div3:rgba(0,0,0,0.06);
+      --c-chart-g:rgba(0,0,0,0.06); --c-chart-l:rgba(0,0,0,0.40); --c-chart-l2:rgba(0,0,0,0.45);
+      --c-chart-l3:rgba(0,0,0,0.18); --c-chart-l4:rgba(0,0,0,0.35); --c-chart-l5:rgba(0,0,0,0.15);
+      --c-alt:rgba(0,0,0,0.015); --c-dim:rgba(0,0,0,0.15); --c-dim2:rgba(0,0,0,0.18);
+      --c-sel-bg:#FFFFFF; --c-shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+      --c-modal-blur:blur(8px);
+      --c-text-normal:rgba(0,0,0,0.65); --c-text-em:rgba(0,0,0,0.55);
+    }
+  `;
+  document.head.appendChild(s);
+})();
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlib3dmdGJkd3R4emF0ZnNkem90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MTE0NTksImV4cCI6MjA5NDE4NzQ1OX0.F0rX051XIfqUQulhhb0J0oOSeVypFPt99xpfeA2A4lY";
 const AUTH_URL = `${SB_URL}/auth/v1`;
 const SESSION_KEY = "cap_session";
@@ -29,14 +82,14 @@ function db(table){
 }
 
 const A="#3912FA";
-const glass={background:"rgba(255,255,255,0.06)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.10)",borderRadius:16};
-const glassHi={background:"rgba(57,18,250,0.12)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(57,18,250,0.35)",borderRadius:16};
-const T={p:"#fff",m:"rgba(255,255,255,0.55)",d:"rgba(255,255,255,0.28)"};
+const glass={background:"var(--c-card)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid var(--c-border)",borderRadius:16,boxShadow:"var(--c-shadow)"};
+const glassHi={background:"var(--c-card-hi)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid var(--c-border-hi)",borderRadius:16,boxShadow:"var(--c-shadow)"};
+const T={p:"var(--c-tp)",m:"var(--c-tm)",d:"var(--c-td)"};
 const BP={background:A,color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"Montserrat,sans-serif",display:"inline-flex",alignItems:"center",gap:6};
-const BG={background:"rgba(255,255,255,0.07)",color:"rgba(255,255,255,0.55)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"Montserrat,sans-serif",display:"inline-flex",alignItems:"center",gap:6};
+const BG={background:"var(--c-btn-bg)",color:"var(--c-btn-c)",border:"1px solid var(--c-btn-b)",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"Montserrat,sans-serif",display:"inline-flex",alignItems:"center",gap:6};
 const BRed={background:"rgba(255,71,87,0.12)",color:"#FF4757",border:"1px solid rgba(255,71,87,0.3)",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Montserrat,sans-serif",display:"inline-flex",alignItems:"center",gap:5};
-const INP={background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,color:"#fff",padding:"8px 12px",fontSize:12,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%"};
-const SEL={background:"rgba(10,8,30,0.85)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,color:"#fff",padding:"8px 10px",fontSize:12,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%"};
+const INP={background:"var(--c-input)",border:"1px solid var(--c-input-b)",borderRadius:8,color:"var(--c-tp)",padding:"8px 12px",fontSize:12,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%"};
+const SEL={background:"var(--c-sel-bg)",border:"1px solid var(--c-input-b)",borderRadius:8,color:"var(--c-tp)",padding:"8px 10px",fontSize:12,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%"};
 
 const ini=n=>n.split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();
 const fmt=n=>Math.round(n*10)/10;
@@ -58,40 +111,40 @@ function projCumulativeH(projectId, allAllocs, forMonthId=null){
 const ABS_LABEL={vacaciones:"🌴 Vacaciones",licencia_medica:"🏥 Licencia médica",dia_libre:"☀️ Día libre"};
 const ABS_COLOR={vacaciones:"#3912FA",licencia_medica:"#FF4757",dia_libre:"#2ED573"};
 
-function oc(p){if(p>1)return"#FF4757";if(p>=.85)return"#FFA502";if(p>=.5)return"#2ED573";return"rgba(255,255,255,0.25)";}
-function ob(p){if(p>1)return"rgba(255,71,87,0.15)";if(p>=.85)return"rgba(255,165,2,0.15)";if(p>=.5)return"rgba(46,213,115,0.15)";return"rgba(255,255,255,0.05)";}
+function oc(p){if(p>1)return"#FF4757";if(p>=.85)return"#FFA502";if(p>=.5)return"#2ED573";return"var(--c-dim2)";}
+function ob(p){if(p>1)return"rgba(255,71,87,0.15)";if(p>=.85)return"rgba(255,165,2,0.15)";if(p>=.5)return"rgba(46,213,115,0.15)";return"var(--c-div2)";}
 
 // ─── CHARTS ──────────────────────────────────────────────────────────────────
 function DonutChart({segments,size=140,label,sublabel}){
   const r=52,cx=size/2,cy=size/2,sw=14;let cum=-90;
   const total=segments.reduce((s,x)=>s+x.value,0);
-  if(!total)return(<svg width={size} height={size}><circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={sw}/>{label&&<text x={cx} y={cy+6} textAnchor="middle" fill={T.m} fontSize={13} fontFamily="Montserrat">Sin datos</text>}</svg>);
+  if(!total)return(<svg width={size} height={size}><circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--c-subtle2)" strokeWidth={sw}/>{label&&<text x={cx} y={cy+6} textAnchor="middle" fill="var(--c-tm)" fontSize={13} fontFamily="Montserrat">Sin datos</text>}</svg>);
   const arcs=segments.map(seg=>{const ang=seg.value/total*360,start=cum,end=cum+ang-1;cum+=ang;const p2c=a=>({x:cx+r*Math.cos(a*Math.PI/180),y:cy+r*Math.sin(a*Math.PI/180)});const s=p2c(start),e=p2c(end),large=ang>180?1:0;return{...seg,d:`M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`};});
-  return(<svg width={size} height={size} style={{overflow:"visible"}}><circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={sw}/>{arcs.map((a,i)=><path key={i} d={a.d} fill="none" stroke={a.color} strokeWidth={sw} strokeLinecap="round"/>)}{label&&<text x={cx} y={cy-6} textAnchor="middle" fill="#fff" fontSize={20} fontWeight={700} fontFamily="Montserrat">{label}</text>}{sublabel&&<text x={cx} y={cy+14} textAnchor="middle" fill={T.m} fontSize={10} fontFamily="Montserrat">{sublabel}</text>}</svg>);
+  return(<svg width={size} height={size} style={{overflow:"visible"}}><circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--c-subtle2)" strokeWidth={sw}/>{arcs.map((a,i)=><path key={i} d={a.d} fill="none" stroke={a.color} strokeWidth={sw} strokeLinecap="round"/>)}{label&&<text x={cx} y={cy-6} textAnchor="middle" fill="#fff" fontSize={20} fontWeight={700} fontFamily="Montserrat">{label}</text>}{sublabel&&<text x={cx} y={cy+14} textAnchor="middle" fill="var(--c-tm)" fontSize={10} fontFamily="Montserrat">{sublabel}</text>}</svg>);
 }
 function HBar({data}){
   if(!data.length)return null;
   const max=Math.max(...data.map(d=>d.value),100),rh=28;
-  return(<svg width="100%" height={data.length*rh+4} style={{overflow:"visible"}}>{data.map((d,i)=>{const col=oc(d.value/100),y=i*rh;return(<g key={i} transform={`translate(0,${y})`}><rect x={0} y={6} width="100%" height={rh-8} rx={3} fill="rgba(255,255,255,0.04)"/><rect x={0} y={6} width={`${Math.min(d.value/max*100,100)}%`} height={rh-8} rx={3} fill={col} opacity={0.65}/><text x={7} y={rh-5} fill="#fff" fontSize={10} fontFamily="Montserrat" fontWeight={600}>{d.label}</text><text x="99%" y={rh-5} fill={col} fontSize={10} fontFamily="Montserrat" fontWeight={700} textAnchor="end">{d.value}%</text></g>);})}</svg>);
+  return(<svg width="100%" height={data.length*rh+4} style={{overflow:"visible"}}>{data.map((d,i)=>{const col=oc(d.value/100),y=i*rh;return(<g key={i} transform={`translate(0,${y})`}><rect x={0} y={6} width="100%" height={rh-8} rx={3} fill="var(--c-subtle)"/><rect x={0} y={6} width={`${Math.min(d.value/max*100,100)}%`} height={rh-8} rx={3} fill={col} opacity={0.65}/><text x={7} y={rh-5} fill="#fff" fontSize={10} fontFamily="Montserrat" fontWeight={600}>{d.label}</text><text x="99%" y={rh-5} fill={col} fontSize={10} fontFamily="Montserrat" fontWeight={700} textAnchor="end">{d.value}%</text></g>);})}</svg>);
 }
 function TrendLine({points,w=300,h=80}){
   if(!points||points.length<2)return<div style={{height:h,display:"flex",alignItems:"center",justifyContent:"center",color:T.d,fontSize:11}}>Sin suficientes meses</div>;
   const maxY=Math.max(...points.map(p=>p.y),100);
   const sx=i=>(i/(points.length-1))*(w-20)+10,sy=v=>h-10-(v/maxY)*(h-20);
   const d=points.map((p,i)=>`${i===0?"M":"L"} ${sx(i)} ${sy(p.y)}`).join(" ");
-  return(<svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={A} stopOpacity={0.3}/><stop offset="100%" stopColor={A} stopOpacity={0}/></linearGradient></defs><path d={`${d} L ${sx(points.length-1)} ${h} L ${sx(0)} ${h} Z`} fill="url(#tg)"/><path d={d} fill="none" stroke={A} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{points.map((p,i)=>(<g key={i}><circle cx={sx(i)} cy={sy(p.y)} r={3} fill={A}/><text x={sx(i)} y={sy(p.y)-8} textAnchor="middle" fill={T.m} fontSize={9} fontFamily="Montserrat">{p.label}</text></g>))}</svg>);
+  return(<svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={A} stopOpacity={0.25}/><stop offset="100%" stopColor={A} stopOpacity={0}/></linearGradient></defs><path d={`${d} L ${sx(points.length-1)} ${h} L ${sx(0)} ${h} Z`} fill="url(#tg)"/><path d={d} fill="none" stroke={A} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{points.map((p,i)=>(<g key={i}><circle cx={sx(i)} cy={sy(p.y)} r={3} fill={A}/><text x={sx(i)} y={sy(p.y)-8} textAnchor="middle" fill="var(--c-tm)" fontSize={9} fontFamily="Montserrat">{p.label}</text></g>))}</svg>);
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────────────────
 function Modal({title,onClose,width=440,children}){
-  return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:16}} onClick={onClose}><div style={{...glass,padding:26,width,maxWidth:"96vw",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}><span style={{color:T.p,fontWeight:700,fontSize:15}}>{title}</span><button onClick={onClose} style={{...BG,padding:"4px 9px"}}><i className="ti ti-x"/></button></div>{children}</div></div>);
+  return(<div style={{position:"fixed",inset:0,background:"var(--c-overlay)",backdropFilter:"var(--c-modal-blur)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:16}} onClick={onClose}><div style={{...glass,padding:26,width,maxWidth:"96vw",maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}><span style={{color:T.p,fontWeight:700,fontSize:15}}>{title}</span><button onClick={onClose} style={{...BG,padding:"4px 9px"}}><i className="ti ti-x"/></button></div>{children}</div></div>);
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 function LoginScreen({onLogin}){
   const [email,setEmail]=useState("");const [pw,setPw]=useState("");const [loading,setLoading]=useState(false);const [error,setError]=useState(null);
   async function submit(e){e.preventDefault();if(!email||!pw)return;setLoading(true);setError(null);try{await onLogin(email,pw);}catch(err){setError(err.message);setLoading(false);}}
-  return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:380,maxWidth:"92vw"}}><div style={{textAlign:"center",marginBottom:32}}><div style={{fontWeight:800,fontSize:28,color:"#fff",letterSpacing:-1}}>capacity<span style={{color:A}}>.</span>app</div><div style={{fontSize:12,color:"rgba(255,255,255,0.35)",marginTop:6,fontWeight:500,letterSpacing:".08em"}}>AGENCIA DIGITAL</div></div><div style={{...glass,padding:"32px 28px"}}><div style={{fontWeight:700,fontSize:17,color:"#fff",marginBottom:4}}>Iniciar sesión</div><div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginBottom:24}}>Ingresa con tu cuenta para continuar</div><form onSubmit={submit}><div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="usuario@agencia.com" autoFocus style={{...INP,borderRadius:10,padding:"11px 14px",fontSize:13,boxSizing:"border-box"}}/></div><div style={{marginBottom:20}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Contraseña</label><input type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" style={{...INP,borderRadius:10,padding:"11px 14px",fontSize:13,boxSizing:"border-box"}}/></div>{error&&<div style={{background:"rgba(255,71,87,0.12)",border:"1px solid rgba(255,71,87,0.3)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#FF4757",marginBottom:16,display:"flex",alignItems:"center",gap:8}}><i className="ti ti-alert-circle" style={{fontSize:15,flexShrink:0}}/>{error}</div>}<button type="submit" disabled={loading||!email||!pw} style={{...BP,width:"100%",justifyContent:"center",padding:"12px",fontSize:14,borderRadius:10,opacity:loading||!email||!pw?0.6:1}}>{loading?<><i className="ti ti-loader-2" style={{fontSize:16}}/>Ingresando...</>:<><i className="ti ti-login" style={{fontSize:16}}/>Ingresar</>}</button></form></div><div style={{textAlign:"center",marginTop:20,fontSize:11,color:"rgba(255,255,255,0.2)"}}>¿Necesitas acceso? Contacta al administrador.</div></div></div>);
+  return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:380,maxWidth:"92vw"}}><div style={{textAlign:"center",marginBottom:32}}><div style={{fontWeight:800,fontSize:28,color:"#fff",letterSpacing:-1}}>capacity<span style={{color:A}}>.</span>app</div><div style={{fontSize:12,color:"var(--c-chart-l5)",marginTop:6,fontWeight:500,letterSpacing:".08em"}}>AGENCIA DIGITAL</div></div><div style={{...glass,padding:"32px 28px",background:"var(--c-card)"}}><div style={{fontWeight:700,fontSize:17,color:"#fff",marginBottom:4}}>Iniciar sesión</div><div style={{fontSize:12,color:"var(--c-chart-l4)",marginBottom:24}}>Ingresa con tu cuenta para continuar</div><form onSubmit={submit}><div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="usuario@agencia.com" autoFocus style={{...INP,borderRadius:10,padding:"11px 14px",fontSize:13,boxSizing:"border-box"}}/></div><div style={{marginBottom:20}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Contraseña</label><input type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" style={{...INP,borderRadius:10,padding:"11px 14px",fontSize:13,boxSizing:"border-box"}}/></div>{error&&<div style={{background:"rgba(255,71,87,0.12)",border:"1px solid rgba(255,71,87,0.3)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#FF4757",marginBottom:16,display:"flex",alignItems:"center",gap:8}}><i className="ti ti-alert-circle" style={{fontSize:15,flexShrink:0}}/>{error}</div>}<button type="submit" disabled={loading||!email||!pw} style={{...BP,width:"100%",justifyContent:"center",padding:"12px",fontSize:14,borderRadius:10,opacity:loading||!email||!pw?0.6:1}}>{loading?<><i className="ti ti-loader-2" style={{fontSize:16}}/>Ingresando...</>:<><i className="ti ti-login" style={{fontSize:16}}/>Ingresar</>}</button></form></div><div style={{textAlign:"center",marginTop:20,fontSize:11,color:"var(--c-dim)"}}>¿Necesitas acceso? Contacta al administrador.</div></div></div>);
 }
 
 // ─── CALENDAR PICKER ─────────────────────────────────────────────────────────
@@ -106,8 +159,8 @@ function CalendarPicker({year,month,selectedDates,onToggle,holidays,existingAbse
   const cells=[];
   for(let i=0;i<startDow;i++)cells.push(null);
   for(let d=1;d<=daysInMonth;d++)cells.push(d);
-  return(<div><div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:2}}>{["Lu","Ma","Mi","Ju","Vi","Sá","Do"].map(d=>(<div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",padding:"4px 0",textTransform:"uppercase"}}>{d}</div>))}</div><div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>{cells.map((d,i)=>{if(!d)return<div key={"e"+i}/>;const dateStr=`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const dow=(new Date(year,month-1,d).getDay()+6)%7;const isWeekend=dow>=5;const isHol=holidayDates.has(dateStr);const isAbs=absDates.has(dateStr);const isSel=selSet.has(dateStr);const disabled=isWeekend||isHol;let bg="rgba(255,255,255,0.04)",border="1px solid transparent",color="rgba(255,255,255,0.7)";if(isWeekend){bg="rgba(255,255,255,0.02)";color="rgba(255,255,255,0.2)";}if(isHol){bg="rgba(123,111,250,0.15)";border="1px solid rgba(123,111,250,0.4)";color="#7B6FFA";}if(isAbs){bg="rgba(255,165,2,0.15)";border="1px solid rgba(255,165,2,0.4)";color="#FFA502";}if(isSel){bg="rgba(57,18,250,0.35)";border="1px solid #3912FA";color="#fff";}return(<div key={d} title={holidayNames[dateStr]||""} onClick={()=>!disabled&&onToggle(dateStr)} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:6,background:bg,border,color,cursor:disabled?"default":"pointer",fontSize:12,fontWeight:isSel?700:400,position:"relative",transition:"all .1s"}}>{d}{isHol&&<div style={{width:4,height:4,borderRadius:"50%",background:"#7B6FFA",position:"absolute",bottom:3}}/>}{isAbs&&!isSel&&<div style={{width:4,height:4,borderRadius:"50%",background:"#FFA502",position:"absolute",bottom:3}}/>}{isSel&&<div style={{width:4,height:4,borderRadius:"50%",background:"rgba(255,255,255,0.7)",position:"absolute",bottom:3}}/>}</div>);})}
-  </div><div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>{[["#3912FA","Seleccionado"],["#7B6FFA","Feriado"],["#FFA502","Ya registrado"],["rgba(255,255,255,0.2)","Fin de semana"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,0.45)"}}><div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>{l}</div>))}</div></div>);
+  return(<div><div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:2}}>{["Lu","Ma","Mi","Ju","Vi","Sá","Do"].map(d=>(<div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,color:"var(--c-chart-l3)",padding:"4px 0",textTransform:"uppercase"}}>{d}</div>))}</div><div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>{cells.map((d,i)=>{if(!d)return<div key={"e"+i}/>;const dateStr=`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;const dow=(new Date(year,month-1,d).getDay()+6)%7;const isWeekend=dow>=5;const isHol=holidayDates.has(dateStr);const isAbs=absDates.has(dateStr);const isSel=selSet.has(dateStr);const disabled=isWeekend||isHol;let bg="var(--c-subtle)",border="1px solid transparent",color="var(--c-text-normal)";if(isWeekend){bg="var(--c-alt)";color="var(--c-dim)";}if(isHol){bg="rgba(123,111,250,0.15)";border="1px solid rgba(123,111,250,0.4)";color="#7B6FFA";}if(isAbs){bg="rgba(255,165,2,0.15)";border="1px solid rgba(255,165,2,0.4)";color="#FFA502";}if(isSel){bg="rgba(57,18,250,0.35)";border="1px solid #3912FA";color="#fff";}return(<div key={d} title={holidayNames[dateStr]||""} onClick={()=>!disabled&&onToggle(dateStr)} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:6,background:bg,border,color,cursor:disabled?"default":"pointer",fontSize:12,fontWeight:isSel?700:400,position:"relative",transition:"all .1s"}}>{d}{isHol&&<div style={{width:4,height:4,borderRadius:"50%",background:"#7B6FFA",position:"absolute",bottom:3}}/>}{isAbs&&!isSel&&<div style={{width:4,height:4,borderRadius:"50%",background:"#FFA502",position:"absolute",bottom:3}}/>}{isSel&&<div style={{width:4,height:4,borderRadius:"50%",background:"var(--c-text-normal)",position:"absolute",bottom:3}}/>}</div>);})}
+  </div><div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>{[["#3912FA","Seleccionado"],["#7B6FFA","Feriado"],["#FFA502","Ya registrado"],["var(--c-dim)","Fin de semana"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"var(--c-chart-l)"}}><div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>{l}</div>))}</div></div>);
 }
 
 // ─── ABSENCE FORM ─────────────────────────────────────────────────────────────
@@ -131,13 +184,13 @@ function AbsenceForm({initial,people,holidays,existingAbsences,monthYear,onSave,
   const personAbsences=(existingAbsences||[]).filter(a=>a.person_id===personId&&!initial.id);
   const mHols=(holidays||[]).filter(h=>h.year===calYear&&h.month_num===calMonth&&h.date);
   function handleSave(){onSave({...(initial.id?{id:initial.id}:{}),person_id:personId,type,hours:totalHours,notes});}
-  return(<div style={{display:"flex",gap:18}}><div style={{width:200,flexShrink:0,display:"flex",flexDirection:"column",gap:12}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Persona</label><select value={personId} onChange={e=>setPersonId(e.target.value)} disabled={!!initial.id} style={{...SEL,opacity:initial.id?0.6:1}}><option value="">Seleccionar...</option>{people.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Tipo</label>{[{v:"vacaciones",l:"🌴 Vacaciones",c:"#3912FA"},{v:"licencia_medica",l:"🏥 Licencia médica",c:"#FF4757"},{v:"dia_libre",l:"☀️ Día libre",c:"#2ED573"}].map(t=>(<div key={t.v} onClick={()=>setType(t.v)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,border:`1px solid ${type===t.v?t.c:"rgba(255,255,255,0.08)"}`,background:type===t.v?`${t.c}18`:"rgba(255,255,255,0.02)",cursor:"pointer",marginBottom:5}}><div style={{width:8,height:8,borderRadius:"50%",background:type===t.v?t.c:"rgba(255,255,255,0.15)",flexShrink:0}}/><span style={{fontSize:11,fontWeight:600,color:type===t.v?t.c:"rgba(255,255,255,0.5)"}}>{t.l}</span></div>))}</div><div style={{background:"rgba(57,18,250,0.1)",border:"1px solid rgba(57,18,250,0.25)",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:10,color:"rgba(255,255,255,0.45)",marginBottom:4,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>Total ausencia</div>{!useManual?(<div><div style={{fontSize:22,fontWeight:800,color:"#fff",lineHeight:1}}>{selDates.length}<span style={{fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.5)",marginLeft:4}}>días</span></div><div style={{fontSize:12,color:"#7B6FFA",marginTop:3,fontWeight:600}}>{hoursFromDays} HH</div><button onClick={()=>{setUseManual(true);setManualH(String(hoursFromDays||8));}} style={{fontSize:10,color:"rgba(255,255,255,0.35)",background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"Montserrat,sans-serif",marginTop:4,textDecoration:"underline"}}>Ingresar horas manualmente</button></div>):(<div><input type="number" min="0.5" step="0.5" value={manualH} onChange={e=>setManualH(e.target.value)} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,color:"#fff",padding:"6px 10px",fontSize:16,fontWeight:700,fontFamily:"Montserrat,sans-serif",outline:"none",width:"80px",textAlign:"center"}}/><span style={{fontSize:12,color:"rgba(255,255,255,0.5)",marginLeft:6}}>HH</span><button onClick={()=>setUseManual(false)} style={{fontSize:10,color:"rgba(255,255,255,0.35)",background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"Montserrat,sans-serif",marginTop:4,display:"block",textDecoration:"underline"}}>Usar calendario</button></div>)}</div><div style={{flex:1}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Notas <span style={{color:T.d,fontWeight:400}}>(opcional)</span></label><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} placeholder="Ej: Vacaciones de verano" style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,color:"#fff",padding:"8px 12px",fontSize:11,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%",boxSizing:"border-box",resize:"none",lineHeight:1.5}}/></div><div style={{display:"flex",flexDirection:"column",gap:6}}><button onClick={handleSave} disabled={!canSave} style={{...BP,justifyContent:"center",padding:"9px 0",opacity:canSave?1:0.45}}><i className={`ti ti-${initial.id?"check":"calendar-off"}`}/>{initial.id?"Guardar":"Registrar ausencia"}</button><button onClick={onCancel} style={{...BG,justifyContent:"center",padding:"8px 0"}}>Cancelar</button></div></div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><button onClick={prevMonth} style={{...BG,padding:"5px 10px"}}><i className="ti ti-chevron-left" style={{fontSize:14}}/></button><span style={{fontWeight:700,fontSize:13,color:"#fff"}}>{MN[calMonth-1]} {calYear}</span><button onClick={nextMonth} style={{...BG,padding:"5px 10px"}}><i className="ti ti-chevron-right" style={{fontSize:14}}/></button></div><CalendarPicker year={calYear} month={calMonth} selectedDates={selDates} onToggle={toggleDate} holidays={holidays} existingAbsences={personAbsences}/>{selDates.length>0&&!useManual&&(<div style={{marginTop:10,background:"rgba(57,18,250,0.08)",borderRadius:8,padding:"8px 12px"}}><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontWeight:600,marginBottom:5,textTransform:"uppercase",letterSpacing:".06em"}}>Días seleccionados</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{selDates.map(d=>(<span key={d} onClick={()=>toggleDate(d)} style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:"rgba(57,18,250,0.3)",color:"#fff",cursor:"pointer",border:"1px solid rgba(57,18,250,0.5)"}}>{new Date(d+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"short"})} ×</span>))}</div></div>)}{mHols.length>0&&(<div style={{marginTop:10,background:"rgba(123,111,250,0.08)",borderRadius:8,padding:"8px 12px",border:"1px solid rgba(123,111,250,0.2)"}}><div style={{fontSize:10,color:"#7B6FFA",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>📅 Feriados en {MN[calMonth-1]}</div>{mHols.map(h=>(<div key={h.id} style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:2,display:"flex",justifyContent:"space-between"}}><span>{h.name}</span><span style={{color:T.d}}>{new Date(h.date+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"short"})}</span></div>))}</div>)}</div></div>);
+  return(<div style={{display:"flex",gap:18}}><div style={{width:200,flexShrink:0,display:"flex",flexDirection:"column",gap:12}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Persona</label><select value={personId} onChange={e=>setPersonId(e.target.value)} disabled={!!initial.id} style={{...SEL,opacity:initial.id?0.6:1}}><option value="">Seleccionar...</option>{people.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Tipo</label>{[{v:"vacaciones",l:"🌴 Vacaciones",c:"#3912FA"},{v:"licencia_medica",l:"🏥 Licencia médica",c:"#FF4757"},{v:"dia_libre",l:"☀️ Día libre",c:"#2ED573"}].map(t=>(<div key={t.v} onClick={()=>setType(t.v)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,border:`1px solid ${type===t.v?t.c:"var(--c-div)"}`,background:type===t.v?`${t.c}18`:"var(--c-alt)",cursor:"pointer",marginBottom:5}}><div style={{width:8,height:8,borderRadius:"50%",background:type===t.v?t.c:"rgba(255,255,255,0.15)",flexShrink:0}}/><span style={{fontSize:11,fontWeight:600,color:type===t.v?t.c:"rgba(255,255,255,0.5)"}}>{t.l}</span></div>))}</div><div style={{background:"rgba(57,18,250,0.1)",border:"1px solid rgba(57,18,250,0.25)",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:10,color:"var(--c-chart-l)",marginBottom:4,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>Total ausencia</div>{!useManual?(<div><div style={{fontSize:22,fontWeight:800,color:"#fff",lineHeight:1}}>{selDates.length}<span style={{fontSize:13,fontWeight:500,color:"var(--c-chart-l2)",marginLeft:4}}>días</span></div><div style={{fontSize:12,color:"#7B6FFA",marginTop:3,fontWeight:600}}>{hoursFromDays} HH</div><button onClick={()=>{setUseManual(true);setManualH(String(hoursFromDays||8));}} style={{fontSize:10,color:"var(--c-chart-l5)",background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"Montserrat,sans-serif",marginTop:4,textDecoration:"underline"}}>Ingresar horas manualmente</button></div>):(<div><input type="number" min="0.5" step="0.5" value={manualH} onChange={e=>setManualH(e.target.value)} style={{background:"var(--c-input)",border:"1px solid var(--c-input-b)",borderRadius:6,color:"var(--c-tp)",padding:"6px 10px",fontSize:16,fontWeight:700,fontFamily:"Montserrat,sans-serif",outline:"none",width:"80px",textAlign:"center"}}/><span style={{fontSize:12,color:"var(--c-chart-l2)",marginLeft:6}}>HH</span><button onClick={()=>setUseManual(false)} style={{fontSize:10,color:"var(--c-chart-l5)",background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"Montserrat,sans-serif",marginTop:4,display:"block",textDecoration:"underline"}}>Usar calendario</button></div>)}</div><div style={{flex:1}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:5,fontWeight:600}}>Notas <span style={{color:T.d,fontWeight:400}}>(opcional)</span></label><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} placeholder="Ej: Vacaciones de verano" style={{background:"var(--c-input)",border:"1px solid var(--c-input-b)",borderRadius:8,color:"var(--c-tp)",padding:"8px 12px",fontSize:11,fontFamily:"Montserrat,sans-serif",outline:"none",width:"100%",boxSizing:"border-box",resize:"none",lineHeight:1.5}}/></div><div style={{display:"flex",flexDirection:"column",gap:6}}><button onClick={handleSave} disabled={!canSave} style={{...BP,justifyContent:"center",padding:"9px 0",opacity:canSave?1:0.45}}><i className={`ti ti-${initial.id?"check":"calendar-off"}`}/>{initial.id?"Guardar":"Registrar ausencia"}</button><button onClick={onCancel} style={{...BG,justifyContent:"center",padding:"8px 0"}}>Cancelar</button></div></div><div style={{flex:1,minWidth:0}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}><button onClick={prevMonth} style={{...BG,padding:"5px 10px"}}><i className="ti ti-chevron-left" style={{fontSize:14}}/></button><span style={{fontWeight:700,fontSize:13,color:"#fff"}}>{MN[calMonth-1]} {calYear}</span><button onClick={nextMonth} style={{...BG,padding:"5px 10px"}}><i className="ti ti-chevron-right" style={{fontSize:14}}/></button></div><CalendarPicker year={calYear} month={calMonth} selectedDates={selDates} onToggle={toggleDate} holidays={holidays} existingAbsences={personAbsences}/>{selDates.length>0&&!useManual&&(<div style={{marginTop:10,background:"rgba(57,18,250,0.08)",borderRadius:8,padding:"8px 12px"}}><div style={{fontSize:10,color:"var(--c-chart-l4)",fontWeight:600,marginBottom:5,textTransform:"uppercase",letterSpacing:".06em"}}>Días seleccionados</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{selDates.map(d=>(<span key={d} onClick={()=>toggleDate(d)} style={{fontSize:10,padding:"2px 7px",borderRadius:10,background:"rgba(57,18,250,0.3)",color:"#fff",cursor:"pointer",border:"1px solid rgba(57,18,250,0.5)"}}>{new Date(d+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"short"})} ×</span>))}</div></div>)}{mHols.length>0&&(<div style={{marginTop:10,background:"rgba(123,111,250,0.08)",borderRadius:8,padding:"8px 12px",border:"1px solid rgba(123,111,250,0.2)"}}><div style={{fontSize:10,color:"#7B6FFA",fontWeight:700,marginBottom:6,textTransform:"uppercase",letterSpacing:".06em"}}>📅 Feriados en {MN[calMonth-1]}</div>{mHols.map(h=>(<div key={h.id} style={{fontSize:11,color:"var(--c-text-em)",marginBottom:2,display:"flex",justifyContent:"space-between"}}><span>{h.name}</span><span style={{color:T.d}}>{new Date(h.date+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"short"})}</span></div>))}</div>)}</div></div>);
 }
 
 // ─── HOLIDAY FORM ─────────────────────────────────────────────────────────────
 function HolidayForm({initial,onSave,onCancel}){
   const [f,setF]=useState(initial);const set=(k,v)=>setF(x=>({...x,[k]:v}));
-  return(<div><div style={{background:"rgba(57,18,250,0.1)",border:"1px solid rgba(57,18,250,0.25)",borderRadius:8,padding:"10px 14px",fontSize:11,color:"rgba(255,255,255,0.6)",marginBottom:18}}><i className="ti ti-info-circle" style={{fontSize:13,marginRight:6,verticalAlign:-2,color:A}}/>Los feriados son <strong style={{color:"#fff"}}>globales</strong> — se descuentan de <strong style={{color:"#fff"}}>todo el equipo</strong> ese mes.</div><div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Nombre *</label><input value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ej: Día del Trabajo" style={{...INP,boxSizing:"border-box"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Mes</label><select value={f.month_num} onChange={e=>set("month_num",e.target.value)} style={SEL}>{MN.map((mn,i)=><option key={i} value={i+1}>{mn}</option>)}</select></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Año</label><input value={f.year} onChange={e=>set("year",e.target.value)} type="number" style={{...INP,boxSizing:"border-box"}}/></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Fecha exacta <span style={{color:T.d,fontWeight:400}}>(opcional)</span></label><input value={f.date||""} onChange={e=>set("date",e.target.value)} type="date" style={{...INP,boxSizing:"border-box",colorScheme:"dark"}}/></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Horas</label><input value={f.hours} onChange={e=>set("hours",e.target.value)} type="number" min="1" max="24" step="0.5" style={{...INP,boxSizing:"border-box"}}/></div></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={onCancel} style={BG}>Cancelar</button><button onClick={()=>onSave(f)} disabled={!f.name} style={{...BP,opacity:f.name?1:0.5}}><i className={`ti ti-${f.id?"check":"calendar-plus"}`}/>{f.id?"Guardar cambios":"Agregar feriado"}</button></div></div>);
+  return(<div><div style={{background:"rgba(57,18,250,0.1)",border:"1px solid rgba(57,18,250,0.25)",borderRadius:8,padding:"10px 14px",fontSize:11,color:"var(--c-text-em)",marginBottom:18}}><i className="ti ti-info-circle" style={{fontSize:13,marginRight:6,verticalAlign:-2,color:A}}/>Los feriados son <strong style={{color:"#fff"}}>globales</strong> — se descuentan de <strong style={{color:"#fff"}}>todo el equipo</strong> ese mes.</div><div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Nombre *</label><input value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ej: Día del Trabajo" style={{...INP,boxSizing:"border-box"}}/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Mes</label><select value={f.month_num} onChange={e=>set("month_num",e.target.value)} style={SEL}>{MN.map((mn,i)=><option key={i} value={i+1}>{mn}</option>)}</select></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Año</label><input value={f.year} onChange={e=>set("year",e.target.value)} type="number" style={{...INP,boxSizing:"border-box"}}/></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Fecha exacta <span style={{color:T.d,fontWeight:400}}>(opcional)</span></label><input value={f.date||""} onChange={e=>set("date",e.target.value)} type="date" style={{...INP,boxSizing:"border-box",colorScheme:"dark"}}/></div><div><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Horas</label><input value={f.hours} onChange={e=>set("hours",e.target.value)} type="number" min="1" max="24" step="0.5" style={{...INP,boxSizing:"border-box"}}/></div></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={onCancel} style={BG}>Cancelar</button><button onClick={()=>onSave(f)} disabled={!f.name} style={{...BP,opacity:f.name?1:0.5}}><i className={`ti ti-${f.id?"check":"calendar-plus"}`}/>{f.id?"Guardar cambios":"Agregar feriado"}</button></div></div>);
 }
 
 // ─── PERSON FORM ──────────────────────────────────────────────────────────────
@@ -154,7 +207,7 @@ function PersonForm({initial,onSave,onCancel}){
         <label style={{display:"block",fontSize:11,color:T.m,marginBottom:8,fontWeight:600}}>Tipo de contrato</label>
         <div style={{display:"flex",gap:8}}>
           {[["planta","🏢 Planta","Contrato fijo, descuenta feriados y ausencias"],["freelance","🔗 Freelance","Sin horario fijo, no descuenta feriados ni ausencias"]].map(([v,l,desc])=>(
-            <div key={v} onClick={()=>set("contract_type",v)} style={{flex:1,padding:"9px 10px",borderRadius:8,border:`1px solid ${f.contract_type===v?(v==="freelance"?"#FFA502":A):"rgba(255,255,255,0.1)"}`,background:f.contract_type===v?(v==="freelance"?"rgba(255,165,2,0.1)":"rgba(57,18,250,0.12)"):"rgba(255,255,255,0.02)",cursor:"pointer"}}>
+            <div key={v} onClick={()=>set("contract_type",v)} style={{flex:1,padding:"9px 10px",borderRadius:8,border:`1px solid ${f.contract_type===v?(v==="freelance"?"#FFA502":A):"rgba(255,255,255,0.1)"}`,background:f.contract_type===v?(v==="freelance"?"rgba(255,165,2,0.1)":"rgba(57,18,250,0.12)"):"var(--c-alt)",cursor:"pointer"}}>
               <div style={{fontSize:12,fontWeight:700,color:f.contract_type===v?(v==="freelance"?"#FFA502":"#fff"):"rgba(255,255,255,0.45)",marginBottom:3}}>{l}</div>
               <div style={{fontSize:9,color:"rgba(255,255,255,0.28)",lineHeight:1.4}}>{desc}</div>
             </div>
@@ -190,20 +243,34 @@ function ProjectForm({initial,onSave,onCancel}){
   const pctTime=totalDays>0&&daysLeft!==null?Math.min(100,Math.max(0,Math.round((1-(daysLeft/totalDays))*100))):null;
   return(<div>
     <div style={{marginBottom:14}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>Nombre *</label><input value={f.name} onChange={e=>set("name",e.target.value)} placeholder="Ej: Rediseño web Copec" style={{...INP,boxSizing:"border-box"}}/></div>
-    <div style={{marginBottom:16}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:8,fontWeight:600}}>Tipo</label>{["proyecto","fee","interno"].map(t=>(<div key={t} onClick={()=>set("type",t)} style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${f.type===t?A:"rgba(255,255,255,0.1)"}`,background:f.type===t?"rgba(57,18,250,0.15)":"rgba(255,255,255,0.03)",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:10,height:10,borderRadius:"50%",background:f.type===t?A:"rgba(255,255,255,0.15)",flexShrink:0}}/><div><div style={{fontSize:12,fontWeight:600,color:f.type===t?"#fff":T.m}}>{TYPE_LABELS[t]}</div><div style={{fontSize:10,color:T.d,marginTop:2}}>{desc[t]}</div></div></div>))}</div>
-    {f.type!=="interno"&&(<div style={{marginBottom:16}}>
-      <label style={{display:"block",fontSize:11,color:T.m,marginBottom:8,fontWeight:600}}>{f.type==="fee"?"Vigencia del fee":"Fechas del proyecto"}<span style={{color:T.d,fontWeight:400,marginLeft:4}}>(opcional)</span></label>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>Inicio</label><input type="date" value={f.start_date||""} onChange={e=>set("start_date",e.target.value)} style={{...INP,boxSizing:"border-box",colorScheme:"dark",fontSize:11}}/></div>
-        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>{f.type==="fee"?"Vencimiento":"Deadline"}</label><input type="date" value={f.end_date||""} onChange={e=>set("end_date",e.target.value)} style={{...INP,boxSizing:"border-box",colorScheme:"dark",fontSize:11,borderColor:isOverdue?"rgba(255,71,87,0.5)":"rgba(255,255,255,0.15)"}}/></div>
-        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>HH presupuestadas</label><input type="number" min="0" step="1" value={f.budget_hours||""} onChange={e=>set("budget_hours",e.target.value)} placeholder="Ej: 320" style={{...INP,boxSizing:"border-box",fontSize:11}}/></div>
+    <div style={{marginBottom:16}}><label style={{display:"block",fontSize:11,color:T.m,marginBottom:8,fontWeight:600}}>Tipo</label>{["proyecto","fee","interno"].map(t=>(<div key={t} onClick={()=>set("type",t)} style={{padding:"10px 14px",borderRadius:8,border:`1px solid ${f.type===t?A:"rgba(255,255,255,0.1)"}`,background:f.type===t?"rgba(57,18,250,0.15)":"var(--c-subtle)",cursor:"pointer",display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:10,height:10,borderRadius:"50%",background:f.type===t?A:"rgba(255,255,255,0.15)",flexShrink:0}}/><div><div style={{fontSize:12,fontWeight:600,color:f.type===t?"#fff":T.m}}>{TYPE_LABELS[t]}</div><div style={{fontSize:10,color:T.d,marginTop:2}}>{desc[t]}</div></div></div>))}</div>
+    {/* Fee: solo HH presupuestadas mensuales, sin fechas */}
+    {f.type==="fee"&&(<div style={{marginBottom:16}}>
+      <label style={{display:"block",fontSize:11,color:T.m,marginBottom:6,fontWeight:600}}>HH presupuestadas por mes</label>
+      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+        <input type="number" min="0" step="1" value={f.budget_hours||""} onChange={e=>set("budget_hours",e.target.value)}
+          placeholder="Ej: 80" style={{...INP,boxSizing:"border-box",fontSize:13,maxWidth:140}}/>
+        <span style={{fontSize:11,color:T.d}}>horas / mes</span>
       </div>
-      {start&&end&&pctTime!==null&&(<div style={{marginTop:10,background:"rgba(255,255,255,0.04)",borderRadius:8,padding:"10px 12px"}}>
+      <div style={{marginTop:8,background:"rgba(57,18,250,0.08)",border:"1px solid rgba(57,18,250,0.2)",borderRadius:8,padding:"8px 12px",fontSize:11,color:T.m}}>
+        <i className="ti ti-info-circle" style={{fontSize:13,marginRight:6,verticalAlign:-2,color:A}}/>
+        Las fechas del fee corresponden al mes en curso. El progreso se mide mensualmente.
+      </div>
+    </div>)}
+    {/* Proyecto: fechas + HH presupuestadas totales */}
+    {f.type==="proyecto"&&(<div style={{marginBottom:16}}>
+      <label style={{display:"block",fontSize:11,color:T.m,marginBottom:8,fontWeight:600}}>Fechas y presupuesto<span style={{color:T.d,fontWeight:400,marginLeft:4}}>(opcional)</span></label>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>Fecha inicio</label><input type="date" value={f.start_date||""} onChange={e=>set("start_date",e.target.value)} style={{...INP,boxSizing:"border-box",colorScheme:"dark",fontSize:11}}/></div>
+        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>Deadline</label><input type="date" value={f.end_date||""} onChange={e=>set("end_date",e.target.value)} style={{...INP,boxSizing:"border-box",colorScheme:"dark",fontSize:11,borderColor:isOverdue?"rgba(255,71,87,0.5)":"rgba(255,255,255,0.15)"}}/></div>
+        <div><label style={{display:"block",fontSize:10,color:T.d,marginBottom:4}}>HH presupuestadas total</label><input type="number" min="0" step="1" value={f.budget_hours||""} onChange={e=>set("budget_hours",e.target.value)} placeholder="Ej: 320" style={{...INP,boxSizing:"border-box",fontSize:11}}/></div>
+      </div>
+      {start&&end&&pctTime!==null&&(<div style={{marginTop:10,background:"var(--c-subtle)",borderRadius:8,padding:"10px 12px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
           <span style={{fontSize:10,color:T.d}}>Avance temporal</span>
           <span style={{fontSize:11,fontWeight:700,color:isOverdue?"#FF4757":daysLeft<=7?"#FFA502":"#fff"}}>{isOverdue?`Vencido hace ${Math.abs(daysLeft)} días`:daysLeft===0?"Vence hoy":`${daysLeft} días restantes`}</span>
         </div>
-        <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pctTime}%`,background:isOverdue?"#FF4757":pctTime>85?"#FFA502":A,borderRadius:3}}/></div>
+        <div style={{height:6,background:"var(--c-subtle2)",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pctTime}%`,background:isOverdue?"#FF4757":pctTime>85?"#FFA502":A,borderRadius:3}}/></div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
           <span style={{fontSize:9,color:T.d}}>{start.toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"})}</span>
           <span style={{fontSize:9,color:T.d}}>{end.toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"})}</span>
@@ -329,7 +396,7 @@ function AnualView({ data, team }) {
     const SEGS=[{k:"fee",c:"#2ED573"},{k:"proyecto",c:A},{k:"interno",c:"rgba(255,255,255,0.18)"}];
     return(
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-        {[0.25,0.5,0.75,1].map(f=>{const y=H-pB-(H-pB-pT)*f;return(<g key={f}><line x1={pL} y1={y} x2={W-4} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1}/><text x={pL-5} y={y+3} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={8} fontFamily="Montserrat">{Math.round(maxH*f)}</text></g>);})}
+        {[0.25,0.5,0.75,1].map(f=>{const y=H-pB-(H-pB-pT)*f;return(<g key={f}><line x1={pL} y1={y} x2={W-4} y2={y} stroke="var(--c-subtle2)" strokeWidth={1}/><text x={pL-5} y={y+3} textAnchor="end" fill="var(--c-chart-l3)" fontSize={8} fontFamily="Montserrat">{Math.round(maxH*f)}</text></g>);})}
         {metrics.map((m,i)=>{
           const x=pL+i*(barW+gap);
           let curY=H-pB;
@@ -345,7 +412,7 @@ function AnualView({ data, team }) {
             })}
             {/* Occupancy % above bar */}
             <text x={x+barW/2} y={H-pB-scY(m.totalSold)-5} textAnchor="middle" fill={oc(m.occPct/100)} fontSize={9} fontFamily="Montserrat" fontWeight={700}>{m.occPct}%</text>
-            <text x={x+barW/2} y={H-pB+16} textAnchor="middle" fill="rgba(255,255,255,0.45)" fontSize={9} fontFamily="Montserrat">{MN[m.month_num-1].substring(0,3)}</text>
+            <text x={x+barW/2} y={H-pB+16} textAnchor="middle" fill="var(--c-chart-l)" fontSize={9} fontFamily="Montserrat">{MN[m.month_num-1].substring(0,3)}</text>
           </g>);
         })}
       </svg>
@@ -363,7 +430,7 @@ function AnualView({ data, team }) {
     const scY=v=>(H-pB-pT)*v/maxH;
     return(
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-        {[0.25,0.5,0.75,1].map(f=>{const y=H-pB-(H-pB-pT)*f;return(<g key={f}><line x1={pL} y1={y} x2={W-4} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1}/><text x={pL-5} y={y+3} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={8} fontFamily="Montserrat">{Math.round(maxH*f)}</text></g>);})}
+        {[0.25,0.5,0.75,1].map(f=>{const y=H-pB-(H-pB-pT)*f;return(<g key={f}><line x1={pL} y1={y} x2={W-4} y2={y} stroke="var(--c-subtle2)" strokeWidth={1}/><text x={pL-5} y={y+3} textAnchor="end" fill="var(--c-chart-l3)" fontSize={8} fontFamily="Montserrat">{Math.round(maxH*f)}</text></g>);})}
         {metrics.map((m,i)=>{
           const x=pL+i*(pairW+pairGap);
           const hA=scY(m.totalAvail),hS=scY(m.totalSold);
@@ -376,8 +443,8 @@ function AnualView({ data, team }) {
             <rect x={x+bW+gap} y={H-pB-hS} width={bW} height={hS} fill={oc(m.occPct/100)} rx={2} opacity={0.85}/>
             {hS>=12&&<text x={x+bW+gap+bW/2} y={H-pB-hS+hS/2+3} textAnchor="middle" fill="rgba(0,0,0,0.7)" fontSize={8} fontFamily="Montserrat" fontWeight={700}>{Math.round(m.totalSold)}</text>}
             {/* Free label */}
-            {free>0&&hA-hS>=10&&<text x={x+bW/2} y={H-pB-hA+hA/2-hS/2-2} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize={7} fontFamily="Montserrat">-{Math.round(free)}</text>}
-            <text x={x+pairW/2} y={H-pB+16} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={9} fontFamily="Montserrat">{MN[m.month_num-1].substring(0,3)}</text>
+            {free>0&&hA-hS>=10&&<text x={x+bW/2} y={H-pB-hA+hA/2-hS/2-2} textAnchor="middle" fill="var(--c-chart-l3)" fontSize={7} fontFamily="Montserrat">-{Math.round(free)}</text>}
+            <text x={x+pairW/2} y={H-pB+16} textAnchor="middle" fill="var(--c-chart-l4)" fontSize={9} fontFamily="Montserrat">{MN[m.month_num-1].substring(0,3)}</text>
           </g>);
         })}
       </svg>
@@ -393,8 +460,8 @@ function AnualView({ data, team }) {
     const d=metrics.map((m,i)=>`${i===0?"M":"L"} ${sx(i)} ${sy(m.occPct)}`).join(" ");
     return(
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-        <defs><linearGradient id="og2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={A} stopOpacity={0.3}/><stop offset="100%" stopColor={A} stopOpacity={0}/></linearGradient></defs>
-        {[[50,"rgba(255,255,255,0.06)","none"],[85,"rgba(255,165,2,0.3)","4,3"],[100,"rgba(255,71,87,0.3)","4,3"]].map(([v,stroke,dash])=>{
+        <defs><linearGradient id="og2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={A} stopOpacity={0.25}/><stop offset="100%" stopColor={A} stopOpacity={0}/></linearGradient></defs>
+        {[[50,"var(--c-subtle2)","none"],[85,"rgba(255,165,2,0.3)","4,3"],[100,"rgba(255,71,87,0.3)","4,3"]].map(([v,stroke,dash])=>{
           const y=sy(v);return(<g key={v}><line x1={pL} y1={y} x2={W-4} y2={y} stroke={stroke} strokeWidth={1.5} strokeDasharray={dash}/><text x={pL-4} y={y+3} textAnchor="end" fill="rgba(255,255,255,0.28)" fontSize={8} fontFamily="Montserrat">{v}%</text></g>);
         })}
         <path d={`${d} L ${sx(metrics.length-1)} ${H-pB} L ${sx(0)} ${H-pB} Z`} fill="url(#og2)"/>
@@ -418,14 +485,14 @@ function AnualView({ data, team }) {
         <svg width={Math.max(totalW,400)} height={totalH} style={{display:"block",minWidth:totalW}}>
           {/* Month headers */}
           {months.map((m,i)=>(
-            <text key={m.id} x={lblW+cW*i+cW/2} y={headerH-8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9} fontFamily="Montserrat" fontWeight={600}>{MN[m.month_num-1].substring(0,3)}</text>
+            <text key={m.id} x={lblW+cW*i+cW/2} y={headerH-8} textAnchor="middle" fill="var(--c-chart-l2)" fontSize={9} fontFamily="Montserrat" fontWeight={600}>{MN[m.month_num-1].substring(0,3)}</text>
           ))}
           {/* Rows */}
           {people.map((p,ri)=>{
             const y=headerH+cH*ri;
             return(<g key={p.id}>
               {/* Person name */}
-              <text x={lblW-8} y={y+cH/2+4} textAnchor="end" fill="rgba(255,255,255,0.7)" fontSize={10} fontFamily="Montserrat" fontWeight={500}>
+              <text x={lblW-8} y={y+cH/2+4} textAnchor="end" fill="var(--c-text-normal)" fontSize={10} fontFamily="Montserrat" fontWeight={500}>
                 {(p.name.length>14?p.name.substring(0,13)+"…":p.name)}
               </text>
               {/* Cells */}
@@ -510,11 +577,11 @@ function AnualView({ data, team }) {
       {/* ── KPI Row 2: riesgo y concentración ───────────────────────────── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:12}}>
         {[
-          {v:fmt(annualAbs)+"h",   l:"HH Ausencias",      n:"vacaciones + licencias",                      c:"rgba(255,255,255,0.6)",i:"ti-calendar-off"},
+          {v:fmt(annualAbs)+"h",   l:"HH Ausencias",      n:"vacaciones + licencias",                      c:"var(--c-text-em)",i:"ti-calendar-off"},
           {v:fmt(annualOverHH)+"h",l:"HH Sobreutilización",n:"horas trabajadas de más",                    c:annualOverHH>0?"#FF4757":"#2ED573",i:"ti-alert-triangle"},
           {v:burnoutRisk,          l:"Riesgo burnout",     n:"personas con ≥2 meses sobre 100%",            c:burnoutRisk>0?"#FF4757":"#2ED573",i:"ti-flame"},
-          {v:`${concentration}%`,  l:"Concentración top 3",n:sortedProjs.slice(0,3).map(p=>p.name?.split(" ")[0]).join(", ")||"—", c:concentration>60?"#FFA502":"rgba(255,255,255,0.6)",i:"ti-pie-chart"},
-          {v:`${variability}pp`,   l:"Variabilidad",       n:`${quietMonth?MN[quietMonth.month_num-1]:"—"} más tranquilo`, c:variability>40?"#FFA502":"rgba(255,255,255,0.6)",i:"ti-arrows-vertical"},
+          {v:`${concentration}%`,  l:"Concentración top 3",n:sortedProjs.slice(0,3).map(p=>p.name?.split(" ")[0]).join(", ")||"—", c:concentration>60?"#FFA502":"var(--c-text-em)",i:"ti-pie-chart"},
+          {v:`${variability}pp`,   l:"Variabilidad",       n:`${quietMonth?MN[quietMonth.month_num-1]:"—"} más tranquilo`, c:variability>40?"#FFA502":"var(--c-text-em)",i:"ti-arrows-vertical"},
         ].map((k,i)=>(
           <div key={i} style={{...glass,padding:"13px 15px"}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
@@ -532,14 +599,14 @@ function AnualView({ data, team }) {
         <div style={{...glass,padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>HH por tipo · mensual</div>
-            <div style={{display:"flex",gap:10}}>{[["#2ED573","Fee"],[A,"Proyecto"],["rgba(255,255,255,0.2)","Interno"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
+            <div style={{display:"flex",gap:10}}>{[["#2ED573","Fee"],[A,"Proyecto"],["var(--c-dim)","Interno"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
           </div>
           <StackedBars metrics={monthMetrics}/>
         </div>
         <div style={{...glass,padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Disponible vs Asignado · mensual</div>
-            <div style={{display:"flex",gap:10}}>{[["rgba(255,255,255,0.2)","Disponible"],[A,"Asignado"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
+            <div style={{display:"flex",gap:10}}>{[["var(--c-dim)","Disponible"],[A,"Asignado"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
           </div>
           <AvailVsSold metrics={monthMetrics}/>
         </div>
@@ -558,7 +625,7 @@ function AnualView({ data, team }) {
       <div style={{...glass,padding:20,marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Mapa de ocupación · personas × meses</div>
-          <div style={{display:"flex",gap:8}}>{[["#2ED573","50–84%"],["#FFA502","85–100%"],["#FF4757",">100%"],["rgba(255,255,255,0.08)","<50% / sin datos"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
+          <div style={{display:"flex",gap:8}}>{[["#2ED573","50–84%"],["#FFA502","85–100%"],["#FF4757",">100%"],["var(--c-div)","<50% / sin datos"]].map(([c,l])=>(<div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:T.m}}><div style={{width:8,height:8,borderRadius:2,background:c}}/>{l}</div>))}</div>
         </div>
         <Heatmap people={personMetrics} months={filteredMonths}/>
       </div>
@@ -576,7 +643,7 @@ function AnualView({ data, team }) {
                 <div style={{fontSize:11,fontWeight:600,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
                 <div style={{fontSize:9,color:T.d}}>{p.role||"—"} · {p.activeMonths}m{p.overMonths>0&&<span style={{color:"#FF4757",marginLeft:4}}>⚠ {p.overMonths} sobre 100%</span>}</div>
               </div>
-              <div style={{width:72,height:4,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden",flexShrink:0}}>
+              <div style={{width:72,height:4,background:"var(--c-subtle2)",borderRadius:2,overflow:"hidden",flexShrink:0}}>
                 <div style={{height:"100%",width:`${Math.min(p.avgPct,100)}%`,background:col,borderRadius:2}}/>
               </div>
               <span style={{fontSize:11,color:col,fontWeight:700,minWidth:36,textAlign:"right"}}>{p.avgPct}%</span>
@@ -595,11 +662,11 @@ function AnualView({ data, team }) {
                   <span style={{fontSize:11,color:T.m,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  <span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"rgba(255,255,255,0.06)",color:tC,fontWeight:600}}>{TYPE_LABELS[p.type]||p.type}</span>
+                  <span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"var(--c-subtle2)",color:tC,fontWeight:600}}>{TYPE_LABELS[p.type]||p.type}</span>
                   <span style={{fontSize:11,fontWeight:700,color:"#fff",minWidth:42,textAlign:"right"}}>{fmt(p.hours)}h</span>
                 </div>
               </div>
-              <div style={{height:4,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:4,background:"var(--c-subtle2)",borderRadius:2,overflow:"hidden"}}>
                 <div style={{height:"100%",width:`${Math.round(p.hours/maxH*100)}%`,background:tC,borderRadius:2,opacity:.8}}/>
               </div>
             </div>);
@@ -646,7 +713,7 @@ function AusenciasView({cur,monthId,data,setModal,deleteAbsence,deleteHoliday}){
           {abs.length>0?<div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"flex-end"}}>{abs.map(a=>(<span key={a.id} style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:`${ABS_COLOR[a.type]}18`,color:ABS_COLOR[a.type],fontWeight:700,border:`1px solid ${ABS_COLOR[a.type]}40`}}>{ABS_LABEL[a.type]?.split(" ").slice(1).join(" ")} {fmt(a.hours)}h</span>))}</div>:<span style={{fontSize:11,color:T.d,fontStyle:"italic"}}>Sin ausencias</span>}
           <button onClick={()=>setModal({type:"editAbsence",absence:{person_id:p.id,type:"vacaciones",hours:"8",notes:""}})} style={{...BG,padding:"5px 10px",fontSize:11,flexShrink:0}}><i className="ti ti-plus"/></button>
         </div>
-        {abs.length>0&&(<div style={{padding:"0 18px 10px 62px",display:"flex",flexDirection:"column",gap:5}}>{abs.map(a=>(<div key={a.id} style={{display:"flex",alignItems:"center",gap:10,background:"rgba(255,255,255,0.03)",borderRadius:8,padding:"8px 12px"}}><span style={{fontSize:18,lineHeight:1,flexShrink:0}}>{ABS_LABEL[a.type]?.split(" ")[0]}</span><div style={{flex:1,minWidth:0}}><span style={{fontSize:12,fontWeight:600,color:ABS_COLOR[a.type]}}>{ABS_LABEL[a.type]?.split(" ").slice(1).join(" ")}</span>{a.notes&&<span style={{fontSize:11,color:T.d,marginLeft:8}}>— {a.notes}</span>}</div><span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{fmt(a.hours)} HH</span><button onClick={()=>setModal({type:"editAbsence",absence:{...a,hours:String(a.hours)}})} style={{...BG,padding:"4px 7px",fontSize:11}}><i className="ti ti-pencil"/></button><button onClick={()=>deleteAbsence(a.id)} style={{...BRed,padding:"4px 7px"}}><i className="ti ti-trash"/></button></div>))}</div>)}
+        {abs.length>0&&(<div style={{padding:"0 18px 10px 62px",display:"flex",flexDirection:"column",gap:5}}>{abs.map(a=>(<div key={a.id} style={{display:"flex",alignItems:"center",gap:10,background:"var(--c-subtle)",borderRadius:8,padding:"8px 12px"}}><span style={{fontSize:18,lineHeight:1,flexShrink:0}}>{ABS_LABEL[a.type]?.split(" ")[0]}</span><div style={{flex:1,minWidth:0}}><span style={{fontSize:12,fontWeight:600,color:ABS_COLOR[a.type]}}>{ABS_LABEL[a.type]?.split(" ").slice(1).join(" ")}</span>{a.notes&&<span style={{fontSize:11,color:T.d,marginLeft:8}}>— {a.notes}</span>}</div><span style={{fontFamily:"monospace",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>{fmt(a.hours)} HH</span><button onClick={()=>setModal({type:"editAbsence",absence:{...a,hours:String(a.hours)}})} style={{...BG,padding:"4px 7px",fontSize:11}}><i className="ti ti-pencil"/></button><button onClick={()=>deleteAbsence(a.id)} style={{...BRed,padding:"4px 7px"}}><i className="ti ti-trash"/></button></div>))}</div>)}
       </div>);})}
       {people.length===0&&<div style={{padding:28,textAlign:"center",color:T.d,fontSize:13}}>No hay personas en este mes.</div>}
     </div>)}
@@ -665,8 +732,17 @@ function AusenciasView({cur,monthId,data,setModal,deleteAbsence,deleteHoliday}){
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App(){
+  const [darkMode,setDarkMode] = useState(()=>{
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved ? saved==="dark" : true;
+  });
   const [phase,setPhase]=useState("loading");
   const [session,setSession]=useState(getSession);
+
+  useEffect(()=>{
+    applyTheme(darkMode);
+    localStorage.setItem(THEME_KEY, darkMode?"dark":"light");
+  },[darkMode]);
   const [data,setData]=useState(null);
   const [err,setErr]=useState(null);
   const [view,setView]=useState("dashboard");
@@ -724,14 +800,31 @@ export default function App(){
     const allTeamProjects=data.projects.filter(p=>p.team_id===teamObj.id&&p.is_active);
     const allocs=data.allocs.filter(a=>a.month_id===monthId);
     const getH=(pid,projId)=>{const a=allocs.find(x=>x.person_id===pid&&x.project_id===projId);return a?parseFloat(a.hours):0;};
-    const pTotals=Object.fromEntries(people.map(p=>[p.id,allocs.filter(a=>a.person_id===p.id).reduce((s,a)=>s+parseFloat(a.hours),0)]));
+    // For shared profiles: sum allocations across ALL months with same year+month_num
+    // This gives true total occupancy across teams
+    const sameCalendarMonthIds=new Set(
+      data.months
+        .filter(m=>m.year===month.year&&m.month_num===month.month_num)
+        .map(m=>m.id)
+    );
+    const pTotals=Object.fromEntries(people.map(p=>[
+      p.id,
+      data.allocs
+        .filter(a=>a.person_id===p.id&&sameCalendarMonthIds.has(a.month_id))
+        .reduce((s,a)=>s+parseFloat(a.hours),0)
+    ]));
+    // Track which allocs are from OTHER teams (for display in grid)
+    const pThisTeamTotals=Object.fromEntries(people.map(p=>[
+      p.id,
+      allocs.filter(a=>a.person_id===p.id).reduce((s,a)=>s+parseFloat(a.hours),0)
+    ]));
     const isMonthEmpty=data.avail.filter(a=>a.month_id===monthId).length===0;
     return{teamObj,month,people,projects,allTeamProjects,allocs,getH,pTotals,isMonthEmpty,monthProjIds};
   }
 
   function teamMonths(){if(!data)return[];const tid=data.teams.find(t=>t.slug===team)?.id;return data.months.filter(m=>m.team_id===tid).sort((a,b)=>b.year-a.year||b.month_num-a.month_num);}
 
-  function monthDot(mId){if(!data)return"rgba(255,255,255,0.2)";const tid=data.teams.find(t=>t.slug===team)?.id;const month=data.months.find(m=>m.id===mId);if(!month||month.team_id!==tid)return"rgba(255,255,255,0.1)";const av=data.avail.filter(a=>a.month_id===mId);if(!av.length)return"rgba(255,255,255,0.2)";const sold=av.reduce((s,a)=>s+data.allocs.filter(x=>x.person_id===a.person_id&&x.month_id===mId).reduce((ss,x)=>ss+parseFloat(x.hours),0),0);const disp=av.reduce((s,a)=>s+a.available_hours,0);return oc(disp>0?sold/disp:0);}
+  function monthDot(mId){if(!data)return"var(--c-dim)";const tid=data.teams.find(t=>t.slug===team)?.id;const month=data.months.find(m=>m.id===mId);if(!month||month.team_id!==tid)return"rgba(255,255,255,0.1)";const av=data.avail.filter(a=>a.month_id===mId);if(!av.length)return"var(--c-dim)";const sold=av.reduce((s,a)=>s+data.allocs.filter(x=>x.person_id===a.person_id&&x.month_id===mId).reduce((ss,x)=>ss+parseFloat(x.hours),0),0);const disp=av.reduce((s,a)=>s+a.available_hours,0);return oc(disp>0?sold/disp:0);}
 
   async function initializeMonth(mId,teamObj){setSaving(true);try{const tp=data.people.filter(p=>p.team_id===teamObj.id&&p.is_active);const existing=data.avail.filter(a=>a.month_id===mId).map(a=>a.person_id);const toCreate=tp.filter(p=>!existing.includes(p.id));const results=[];for(const p of toCreate){const r=await db("cap_availability").insert({month_id:mId,person_id:p.id,available_hours:p.default_hours});if(r[0])results.push(r[0]);}setData(d=>({...d,avail:[...d.avail,...results]}));notify(`✓ Mes inicializado con ${toCreate.length} personas`);}finally{setSaving(false);}}
 
@@ -889,7 +982,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
     {/* Sidebar */}
     <div style={{...glass,width:200,display:"flex",flexDirection:"column",padding:"16px 10px",flexShrink:0}}>
       <div style={{padding:"4px 8px 16px",borderBottom:"1px solid rgba(255,255,255,0.08)",marginBottom:12}}><div style={{fontWeight:800,fontSize:16,color:"#fff",letterSpacing:-.5}}>capacity<span style={{color:A}}>.</span></div><div style={{fontSize:10,color:T.d,marginTop:2,fontWeight:700,letterSpacing:".06em"}}>AGENCIA DIGITAL</div></div>
-      <div style={{display:"flex",gap:4,marginBottom:14}}>{["PD","MKT"].map(t=>(<button key={t} onClick={()=>{setTeam(t);const tid=data.teams.find(x=>x.slug===t)?.id;const tm=data.months.filter(m=>m.team_id===tid).sort((a,b)=>b.year-a.year||b.month_num-a.month_num);if(tm[0])setMonthId(tm[0].id);}} style={{flex:1,padding:"6px 0",fontSize:11,fontWeight:700,borderRadius:8,cursor:"pointer",background:team===t?A:"rgba(255,255,255,0.06)",border:"1px solid "+(team===t?A:"rgba(255,255,255,0.1)"),color:team===t?"#fff":T.m,fontFamily:"Montserrat,sans-serif"}}>{t}</button>))}</div>
+      <div style={{display:"flex",gap:4,marginBottom:14}}>{["PD","MKT"].map(t=>(<button key={t} onClick={()=>{setTeam(t);const tid=data.teams.find(x=>x.slug===t)?.id;const tm=data.months.filter(m=>m.team_id===tid).sort((a,b)=>b.year-a.year||b.month_num-a.month_num);if(tm[0])setMonthId(tm[0].id);}} style={{flex:1,padding:"6px 0",fontSize:11,fontWeight:700,borderRadius:8,cursor:"pointer",background:team===t?A:"var(--c-subtle2)",border:"1px solid "+(team===t?A:"rgba(255,255,255,0.1)"),color:team===t?"#fff":T.m,fontFamily:"Montserrat,sans-serif"}}>{t}</button>))}</div>
       <div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6,paddingLeft:4}}>Vistas</div>
       <NavItem id="dashboard"  icon="chart-bar"    label="Dashboard"/>
       <NavItem id="matrix"     icon="table"        label="Capacity"/>
@@ -913,6 +1006,9 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
           {view==="equipo"&&<button onClick={()=>setModal({type:"editPerson",person:{name:"",role:"",initials:"",default_hours:"160"}})} style={BP}><i className="ti ti-user-plus"/>Agregar persona</button>}
           {view==="proyectos"&&<button onClick={()=>setModal({type:"editProject",project:{name:"",type:"proyecto"}})} style={BP}><i className="ti ti-plus"/>Nuevo proyecto</button>}
           {view==="ausencias"&&<button onClick={()=>setModal({type:"editAbsence",absence:{person_id:"",type:"vacaciones",hours:"8",notes:""}})} style={BP}><i className="ti ti-plus"/>Registrar ausencia</button>}
+          <button onClick={()=>setDarkMode(d=>!d)} style={{...BG,minWidth:36,justifyContent:"center"}} title={darkMode?"Modo claro":"Modo oscuro"}>
+            <i className={`ti ti-${darkMode?"sun":"moon"}`}/>
+          </button>
           <button onClick={load} style={BG} title="Recargar"><i className="ti ti-refresh"/></button>
           <button onClick={handleLogout} style={{...BG,borderColor:"rgba(255,71,87,0.25)",color:"rgba(255,71,87,0.7)"}} title="Cerrar sesión"><i className="ti ti-logout"/></button>
         </div>
@@ -934,7 +1030,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
           const avgP=valid.length?Math.round(valid.map(p=>Math.min(pTotals[p.id]/p.avail_h,2)*100).reduce((a,b)=>a+b,0)/valid.length):0;
           const libre=Math.max(0,tDisp-tSold);
           const byType={proyecto:0,fee:0,interno:0};projects.forEach(pr=>{const tot=people.reduce((s,p)=>s+getH(p.id,pr.id),0);byType[pr.type]=(byType[pr.type]||0)+tot;});
-          const donut=[{label:"Proyectos",value:byType.proyecto,color:A},{label:"Fees",value:byType.fee,color:"#2ED573"},{label:"Interno",value:byType.interno,color:"rgba(255,255,255,0.25)"}].filter(s=>s.value>0);
+          const donut=[{label:"Proyectos",value:byType.proyecto,color:A},{label:"Fees",value:byType.fee,color:"#2ED573"},{label:"Interno",value:byType.interno,color:"var(--c-dim2)"}].filter(s=>s.value>0);
           const barData=[...people].filter(p=>p.avail_h>0).sort((a,b)=>(pTotals[b.id]/b.avail_h)-(pTotals[a.id]/a.avail_h)).slice(0,10).map(p=>({label:p.name.split(" ")[0],value:pct(pTotals[p.id],p.avail_h)}));
           const tid=cur.teamObj.id;const allM=data.months.filter(m=>m.team_id===tid).sort((a,b)=>a.year-b.year||a.month_num-b.month_num);
           const trend=allM.map(m=>{const av=data.avail.filter(a=>a.month_id===m.id);const sold=av.reduce((s,a)=>s+data.allocs.filter(x=>x.person_id===a.person_id&&x.month_id===m.id).reduce((ss,x)=>ss+parseFloat(x.hours),0),0);const disp=av.reduce((s,a)=>s+a.available_hours,0);return{label:m.label.split(" ")[0],y:disp>0?Math.round(sold/disp*100):0};});
@@ -944,12 +1040,12 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
             {people.filter(p=>p.avail_h>=40&&pTotals[p.id]/p.avail_h<0.5).map((p,i)=>{const libre2=fmt(p.avail_h-pTotals[p.id]);const sinA=pTotals[p.id]===0;return(<div key={"un"+i} style={{...glass,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:10,borderColor:"rgba(255,165,2,0.3)",background:"rgba(255,165,2,0.08)"}}><i className={`ti ti-${sinA?"user-off":"trending-down"}`} style={{fontSize:16,color:"#FFA502",flexShrink:0}}/><span style={{fontSize:12,color:"#fff"}}><strong>{p.name}</strong>{sinA?" — sin horas asignadas. Capacidad libre: ":` al ${pct(pTotals[p.id],p.avail_h)}% — capacidad libre: `}<strong style={{color:"#FFA502"}}>{libre2} HH</strong>{p.abs_h>0&&<span style={{fontSize:11,color:"rgba(255,165,2,0.7)",marginLeft:6}}>({fmt(p.abs_h)} HH ausencia)</span>}</span></div>);})}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
               <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:16}}>Distribución de horas</div><div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20}}><DonutChart segments={donut} size={130} label={`${tSold}`} sublabel="HH total"/><div>{donut.map((s,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><span style={{width:8,height:8,borderRadius:"50%",background:s.color,flexShrink:0}}/><span style={{fontSize:11,color:T.m}}>{s.label}</span><span style={{fontSize:11,fontWeight:700,color:"#fff",marginLeft:"auto",paddingLeft:8}}>{fmt(s.value)}h</span></div>))}</div></div></div>
-              <div style={{...glass,padding:20,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:16,alignSelf:"flex-start"}}>Ocupación del equipo</div><DonutChart segments={[{value:avgP,color:oc(avgP/100)},{value:Math.max(0,100-avgP),color:"rgba(255,255,255,0.05)"}]} size={130} label={`${avgP}%`} sublabel="promedio"/><div style={{display:"flex",justifyContent:"space-around",width:"100%",marginTop:12}}>{[["#2ED573","Óptimo","50–84%"],["#FFA502","Alto","85–100%"],["#FF4757","Sobre",">100%"]].map(([c,l,r])=>(<div key={l} style={{textAlign:"center"}}><div style={{width:8,height:8,borderRadius:"50%",background:c,margin:"0 auto 4px"}}/><div style={{fontSize:9,color:T.d}}>{l}</div><div style={{fontSize:9,color:T.d}}>{r}</div></div>))}</div></div>
+              <div style={{...glass,padding:20,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:16,alignSelf:"flex-start"}}>Ocupación del equipo</div><DonutChart segments={[{value:avgP,color:oc(avgP/100)},{value:Math.max(0,100-avgP),color:"var(--c-div2)"}]} size={130} label={`${avgP}%`} sublabel="promedio"/><div style={{display:"flex",justifyContent:"space-around",width:"100%",marginTop:12}}>{[["#2ED573","Óptimo","50–84%"],["#FFA502","Alto","85–100%"],["#FF4757","Sobre",">100%"]].map(([c,l,r])=>(<div key={l} style={{textAlign:"center"}}><div style={{width:8,height:8,borderRadius:"50%",background:c,margin:"0 auto 4px"}}/><div style={{fontSize:9,color:T.d}}>{l}</div><div style={{fontSize:9,color:T.d}}>{r}</div></div>))}</div></div>
               <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:16}}>Tendencia ocupación</div><TrendLine points={trend}/><div style={{display:"flex",justifyContent:"space-between",marginTop:8}}>{trend.map((p,i)=>(<div key={i} style={{textAlign:"center"}}><div style={{fontSize:11,fontWeight:700,color:oc(p.y/100)}}>{p.y}%</div><div style={{fontSize:9,color:T.d}}>{p.label}</div></div>))}</div></div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:14}}>Ocupación por persona</div><HBar data={barData}/></div>
-              <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:14}}>Proyectos activos</div>{projects.map(p=>{const tot=people.reduce((s,pe)=>s+getH(pe.id,p.id),0);if(!tot)return null;const tC={fee:A,proyecto:"#2ED573",interno:T.d}[p.type];return(<div key={p.id} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:11,color:T.m,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"75%"}}>{p.name}</span><span style={{fontSize:11,color:"#fff",fontWeight:700}}>{fmt(tot)}h</span></div><div style={{height:4,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.round(tot/tSold*100)}%`,background:tC,borderRadius:2,opacity:.75}}/></div></div>);})}</div>
+              <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:14}}>Proyectos activos</div>{projects.map(p=>{const tot=people.reduce((s,pe)=>s+getH(pe.id,p.id),0);if(!tot)return null;const tC={fee:A,proyecto:"#2ED573",interno:T.d}[p.type];return(<div key={p.id} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:11,color:T.m,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"75%"}}>{p.name}</span><span style={{fontSize:11,color:"#fff",fontWeight:700}}>{fmt(tot)}h</span></div><div style={{height:4,background:"var(--c-subtle2)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.round(tot/tSold*100)}%`,background:tC,borderRadius:2,opacity:.75}}/></div></div>);})}</div>
             </div>
           </div>);
         })()}
@@ -958,9 +1054,22 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
         {view==="matrix"&&sub==="grid"&&cur&&(()=>{
           const{people,projects,getH,pTotals,isMonthEmpty}=cur;
           if(isMonthEmpty)return(<div style={{...glassHi,padding:28,maxWidth:540,margin:"20px auto",textAlign:"center"}}><i className="ti ti-table-off" style={{fontSize:40,color:A,display:"block",marginBottom:14}}/><div style={{fontWeight:700,fontSize:16,color:"#fff",marginBottom:8}}>Mes sin datos</div><div style={{fontSize:13,color:T.m,marginBottom:20}}>Este mes no tiene disponibilidad configurada.</div><div style={{display:"flex",gap:10,justifyContent:"center"}}><button onClick={()=>initializeMonth(monthId,cur.teamObj)} style={BP}><i className="ti ti-users-plus"/>Inicializar con equipo completo</button><button onClick={()=>setSub("config")} style={BG}><i className="ti ti-settings"/>Configurar manualmente</button></div></div>);
-          return(<div style={{...glass,overflowX:"auto"}}><table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}><thead><tr><th style={{padding:"8px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",borderRight:"1px solid rgba(255,255,255,0.06)",textAlign:"left",minWidth:188,position:"sticky",left:0,zIndex:3,background:"rgba(7,7,20,0.97)",fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".06em"}}>Proyecto</th><th style={{padding:"8px 8px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontSize:10,fontWeight:700,color:T.d,minWidth:52,textAlign:"center",background:"rgba(7,7,20,0.97)"}}>Total</th>{people.map(p=>{const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);return(<th key={p.id} style={{padding:"5px 7px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontSize:10,fontWeight:600,color:T.m,whiteSpace:"nowrap",minWidth:62,textAlign:"center",background:ob(p2/100)||"rgba(7,7,20,0.97)"}}><div style={{color:T.m}}>{p.name.split(" ")[0]}</div><div style={{fontSize:9,color:col,fontWeight:700,marginTop:1}}>{p2}%</div></th>);})}</tr></thead><tbody>{projects.map(pr=>{const rowTot=people.reduce((s,p)=>s+getH(p.id,pr.id),0);const fee=pr.type!=="proyecto";const dot={fee:A,proyecto:"#2ED573",interno:T.d}[pr.type];return(<tr key={pr.id} style={{background:fee?"rgba(255,255,255,0.02)":"transparent"}}><td style={{padding:"5px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",borderRight:"1px solid rgba(255,255,255,0.05)",position:"sticky",left:0,zIndex:1,background:fee?"rgba(7,7,28,0.97)":"rgba(7,7,20,0.97)",minWidth:188,maxWidth:188,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:fee?T.m:T.p}}><span style={{width:6,height:6,borderRadius:"50%",background:dot,display:"inline-block",marginRight:8,verticalAlign:"middle"}}/>{pr.name}</td><td style={{padding:"5px 8px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",color:T.d,fontSize:11}}>{rowTot>0?fmt(rowTot):"—"}</td>{people.map(p=>{const h=getH(p.id,pr.id),ck=`${pr.id}_${p.id}`,editing=editCell===ck;return(<td key={p.id} onClick={()=>!editing&&setEditCell(ck)} style={{padding:"5px 6px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",cursor:"pointer",minWidth:62,color:h>0?"#fff":"rgba(255,255,255,0.12)",fontWeight:h>0?700:400,background:editing?"rgba(57,18,250,0.25)":"transparent"}}>{editing?<input autoFocus defaultValue={h||""} type="number" min="0" step="0.5" onBlur={e=>{upsertAlloc(monthId,p.id,pr.id,e.target.value);setEditCell(null);}} onKeyDown={e=>{if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditCell(null);}} style={{...INP,width:54,padding:"3px 6px",textAlign:"center"}}/>:h>0?h:"·"}</td>);})}</tr>);})}
-          <tr style={{background:"rgba(57,18,250,0.08)"}}><td style={{padding:"8px 12px",position:"sticky",left:0,background:"rgba(7,7,30,0.98)",zIndex:1,fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".05em",borderTop:"1px solid rgba(57,18,250,0.3)"}}>Total asignado</td><td style={{padding:"8px 8px",textAlign:"center",fontFamily:"monospace",color:"#fff",fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.3)"}}>{fmt(Object.values(pTotals).reduce((a,b)=>a+b,0))}</td>{people.map(p=>{const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);return<td key={p.id} style={{padding:"8px 6px",textAlign:"center",background:pTotals[p.id]>0?ob(p2/100):"transparent",color:pTotals[p.id]>0?col:T.d,fontFamily:"monospace",fontSize:11,fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.2)"}}>{pTotals[p.id]>0?fmt(pTotals[p.id]):"—"}</td>;})}
-          </tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"rgba(7,7,20,0.98)",zIndex:1,fontSize:10,color:T.d}}>Horas disponibles</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:T.d}}>{people.reduce((s,p)=>s+p.avail_h,0)}</td>{people.map(p=><td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:T.d}}>{p.avail_h}</td>)}</tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"rgba(7,7,20,0.98)",zIndex:1,fontSize:10,color:T.d}}>Horas libres</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:"#2ED573"}}>{fmt(people.reduce((s,p)=>s+Math.max(0,p.avail_h-pTotals[p.id]),0))}</td>{people.map(p=>{const l=p.avail_h-pTotals[p.id];return<td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:l<0?"#FF4757":l===0?"rgba(255,255,255,0.3)":"#2ED573",fontWeight:l<0?700:400}}>{fmt(l)}</td>;})}</tr></tbody></table></div>);
+          return(<div style={{...glass,overflowX:"auto"}}><table style={{borderCollapse:"collapse",fontSize:11,width:"100%"}}><thead><tr><th style={{padding:"8px 12px",borderBottom:"1px solid rgba(255,255,255,0.08)",borderRight:"1px solid rgba(255,255,255,0.06)",textAlign:"left",minWidth:188,position:"sticky",left:0,zIndex:3,background:"var(--c-sticky)",fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".06em"}}>Proyecto</th><th style={{padding:"8px 8px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontSize:10,fontWeight:700,color:T.d,minWidth:52,textAlign:"center",background:"var(--c-sticky)"}}>Total</th>{people.map(p=>{
+              const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);
+              const isShared=p.team_id!==cur.teamObj.id;
+              const thisTeamH=cur.pThisTeamTotals?.[p.id]||0;
+              const otherH=pTotals[p.id]-thisTeamH;
+              return(<th key={p.id} style={{padding:"5px 7px",borderBottom:"1px solid rgba(255,255,255,0.08)",fontSize:10,fontWeight:600,color:T.m,whiteSpace:"nowrap",minWidth:66,textAlign:"center",background:isShared?"rgba(255,165,2,0.07)":ob(p2/100)||"var(--c-sticky)"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,color:T.m}}>
+                  {p.name.split(" ")[0]}
+                  {isShared&&<span style={{fontSize:8,padding:"1px 4px",borderRadius:3,background:"rgba(255,165,2,0.2)",color:"#FFA502",fontWeight:700,flexShrink:0}}>{data.teams.find(t=>t.id===p.team_id)?.slug}</span>}
+                </div>
+                <div style={{fontSize:9,color:col,fontWeight:700,marginTop:1}}>{p2}%</div>
+                {isShared&&otherH>0&&<div style={{fontSize:8,color:"rgba(255,165,2,0.6)",marginTop:0}}>+{fmt(otherH)}h ext.</div>}
+              </th>);
+            })}</tr></thead><tbody>{projects.map(pr=>{const rowTot=people.reduce((s,p)=>s+getH(p.id,pr.id),0);const fee=pr.type!=="proyecto";const dot={fee:A,proyecto:"#2ED573",interno:T.d}[pr.type];return(<tr key={pr.id} style={{background:fee?"var(--c-alt)":"transparent"}}><td style={{padding:"5px 12px",borderBottom:"1px solid rgba(255,255,255,0.05)",borderRight:"1px solid rgba(255,255,255,0.05)",position:"sticky",left:0,zIndex:1,background:fee?"var(--c-sticky2)":"var(--c-sticky)",minWidth:188,maxWidth:188,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:fee?T.m:T.p}}><span style={{width:6,height:6,borderRadius:"50%",background:dot,display:"inline-block",marginRight:8,verticalAlign:"middle"}}/>{pr.name}</td><td style={{padding:"5px 8px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",color:T.d,fontSize:11}}>{rowTot>0?fmt(rowTot):"—"}</td>{people.map(p=>{const h=getH(p.id,pr.id),ck=`${pr.id}_${p.id}`,editing=editCell===ck;return(<td key={p.id} onClick={()=>!editing&&setEditCell(ck)} style={{padding:"5px 6px",borderBottom:"1px solid rgba(255,255,255,0.05)",textAlign:"center",fontFamily:"monospace",cursor:"pointer",minWidth:62,color:h>0?"#fff":"rgba(255,255,255,0.12)",fontWeight:h>0?700:400,background:editing?"rgba(57,18,250,0.25)":"transparent"}}>{editing?<input autoFocus defaultValue={h||""} type="number" min="0" step="0.5" onBlur={e=>{upsertAlloc(monthId,p.id,pr.id,e.target.value);setEditCell(null);}} onKeyDown={e=>{if(e.key==="Enter")e.target.blur();if(e.key==="Escape")setEditCell(null);}} style={{...INP,width:54,padding:"3px 6px",textAlign:"center"}}/>:h>0?h:"·"}</td>);})}</tr>);})}
+          <tr style={{background:"rgba(57,18,250,0.08)"}}><td style={{padding:"8px 12px",position:"sticky",left:0,background:"var(--c-sticky3)",zIndex:1,fontSize:10,fontWeight:700,color:T.d,textTransform:"uppercase",letterSpacing:".05em",borderTop:"1px solid rgba(57,18,250,0.3)"}}>Total asignado</td><td style={{padding:"8px 8px",textAlign:"center",fontFamily:"monospace",color:"#fff",fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.3)"}}>{fmt(Object.values(pTotals).reduce((a,b)=>a+b,0))}</td>{people.map(p=>{const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);return<td key={p.id} style={{padding:"8px 6px",textAlign:"center",background:pTotals[p.id]>0?ob(p2/100):"transparent",color:pTotals[p.id]>0?col:T.d,fontFamily:"monospace",fontSize:11,fontWeight:700,borderTop:"1px solid rgba(57,18,250,0.2)"}}>{pTotals[p.id]>0?fmt(pTotals[p.id]):"—"}</td>;})}
+          </tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas disponibles</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:T.d}}>{people.reduce((s,p)=>s+p.avail_h,0)}</td>{people.map(p=><td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:T.d}}>{p.avail_h}</td>)}</tr><tr><td style={{padding:"5px 12px",position:"sticky",left:0,background:"var(--c-sticky)",zIndex:1,fontSize:10,color:T.d}}>Horas libres</td><td style={{padding:"5px 8px",textAlign:"center",fontSize:10,color:"#2ED573"}}>{fmt(people.reduce((s,p)=>s+Math.max(0,p.avail_h-pTotals[p.id]),0))}</td>{people.map(p=>{const l=p.avail_h-pTotals[p.id];return<td key={p.id} style={{padding:"5px 6px",textAlign:"center",fontFamily:"monospace",fontSize:10,color:l<0?"#FF4757":l===0?"rgba(255,255,255,0.3)":"#2ED573",fontWeight:l<0?700:400}}>{fmt(l)}</td>;})}</tr></tbody></table></div>);
         })()}
 
         {/* CAPACITY CARDS */}
@@ -970,7 +1079,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
           return(<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>{people.map(p=>{const p2=pct(pTotals[p.id],p.avail_h),col=oc(p2/100);const projs=projects.map((pr,pi)=>({...pr,h:getH(p.id,pr.id),c:PC[pi%PC.length]})).filter(x=>x.h>0).sort((a,b)=>b.h-a.h);return(<div key={p.id} style={{...glass,padding:16}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}><div style={{width:36,height:36,borderRadius:"50%",background:ob(p2/100),border:`1.5px solid ${col}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:col}}>{p.initials||ini(p.name)}</div><span style={{fontSize:11,padding:"3px 8px",borderRadius:20,background:ob(p2/100),color:col,fontWeight:700}}>{p2}%</span></div><div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:2}}>{p.name}</div><div style={{display:"flex",alignItems:"center",gap:5,marginBottom:10}}>
                     <div style={{fontSize:10,color:A,fontWeight:600}}>{p.role||"Sin cargo"}</div>
                     {(p.contract_type||"planta")==="freelance"&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:8,background:"rgba(255,165,2,0.15)",color:"#FFA502",fontWeight:700}}>FL</span>}
-                  </div><div style={{height:4,borderRadius:2,background:"rgba(255,255,255,0.06)",overflow:"hidden",marginBottom:4}}><div style={{height:"100%",borderRadius:2,width:`${Math.min(p2,100)}%`,background:col}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.d,marginBottom:10}}><span>{fmt(pTotals[p.id])} asig.</span><span>{p.avail_h} disp.</span></div>{projs.length===0&&<div style={{fontSize:10,color:T.d,fontStyle:"italic"}}>Sin asignaciones</div>}{projs.slice(0,4).map(pr=>(<div key={pr.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0",fontSize:11,borderBottom:"1px solid rgba(255,255,255,0.05)"}}><div style={{width:6,height:6,borderRadius:"50%",background:pr.c,flexShrink:0}}/><span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:T.m}}>{pr.name}</span><span style={{color:"#fff",fontSize:10,fontWeight:700}}>{pr.h}h</span></div>))}</div>);})}</div>);
+                  </div><div style={{height:4,borderRadius:2,background:"var(--c-subtle2)",overflow:"hidden",marginBottom:4}}><div style={{height:"100%",borderRadius:2,width:`${Math.min(p2,100)}%`,background:col}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.d,marginBottom:10}}><span>{fmt(pTotals[p.id])} asig.</span><span>{p.avail_h} disp.</span></div>{projs.length===0&&<div style={{fontSize:10,color:T.d,fontStyle:"italic"}}>Sin asignaciones</div>}{projs.slice(0,4).map(pr=>(<div key={pr.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0",fontSize:11,borderBottom:"1px solid rgba(255,255,255,0.05)"}}><div style={{width:6,height:6,borderRadius:"50%",background:pr.c,flexShrink:0}}/><span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:T.m}}>{pr.name}</span><span style={{color:"#fff",fontSize:10,fontWeight:700}}>{pr.h}h</span></div>))}</div>);})}</div>);
         })()}
 
         {/* CAPACITY CONFIG */}
@@ -987,7 +1096,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
                   <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{fontWeight:600,fontSize:12,color:"#fff"}}>{p.name}</div>{(p.contract_type||"planta")==="freelance"&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:6,background:"rgba(255,165,2,0.15)",color:"#FFA502",fontWeight:700}}>FREELANCE</span>}</div>
                   <div style={{fontSize:10,color:A}}>{p.role||"Sin cargo"}</div>
                 </div><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:11,color:T.d}}>HH disp.</span><input type="number" min="0" max="240" defaultValue={p.avail_h} onBlur={e=>updateAvailHours(monthId,p.id,e.target.value)} onKeyDown={e=>{if(e.key==="Enter")e.target.blur();}} style={{...INP,width:70,textAlign:"center",padding:"5px 8px",boxSizing:"border-box"}}/></div><div style={{fontSize:11,color:col,fontWeight:700,minWidth:42,textAlign:"right"}}>{p2}%</div><button onClick={()=>togglePersonInMonth(monthId,p,false)} style={{...BRed,padding:"5px 8px"}} title="Quitar del mes"><i className="ti ti-user-minus"/></button></div>);})}
-              {notInMonth.length>0&&(<div style={{marginTop:18}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>Agregar al mes</div>{notInMonth.map(p=>(<div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}><div style={{width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.d,flexShrink:0}}>{p.initials||ini(p.name)}</div><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12,color:T.m}}>{p.name}</div><div style={{fontSize:10,color:T.d}}>{p.role||"Sin cargo"}</div></div><button onClick={()=>togglePersonInMonth(monthId,p,true)} style={BP}><i className="ti ti-user-plus"/>Agregar</button></div>))}</div>)}
+              {notInMonth.length>0&&(<div style={{marginTop:18}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>Agregar al mes</div>{notInMonth.map(p=>(<div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}><div style={{width:28,height:28,borderRadius:"50%",background:"var(--c-div2)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.d,flexShrink:0}}>{p.initials||ini(p.name)}</div><div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12,color:T.m}}>{p.name}</div><div style={{fontSize:10,color:T.d}}>{p.role||"Sin cargo"}</div></div><button onClick={()=>togglePersonInMonth(monthId,p,true)} style={BP}><i className="ti ti-user-plus"/>Agregar</button></div>))}</div>)}
             </div>
             <div style={{...glass,padding:20}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:12}}>Proyectos en este mes</div>
               {/* Projects IN this month */}
@@ -1005,7 +1114,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <span style={{width:7,height:7,borderRadius:"50%",background:PC[pi%PC.length],flexShrink:0}}/>
                     <span style={{flex:1,fontSize:12,color:"#fff",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</span>
-                    {endD&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:isOverdue?"rgba(255,71,87,0.15)":isDueSoon?"rgba(255,165,2,0.15)":"rgba(255,255,255,0.05)",color:isOverdue?"#FF4757":isDueSoon?"#FFA502":T.d,fontWeight:700,flexShrink:0,border:`1px solid ${isOverdue?"rgba(255,71,87,0.3)":isDueSoon?"rgba(255,165,2,0.3)":"transparent"}`}}>
+                    {endD&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:isOverdue?"rgba(255,71,87,0.15)":isDueSoon?"rgba(255,165,2,0.15)":"var(--c-div2)",color:isOverdue?"#FF4757":isDueSoon?"#FFA502":T.d,fontWeight:700,flexShrink:0,border:`1px solid ${isOverdue?"rgba(255,71,87,0.3)":isDueSoon?"rgba(255,165,2,0.3)":"transparent"}`}}>
                       {isOverdue?`Vencido ${Math.abs(daysLeft)}d`:daysLeft===0?"Vence hoy":`${daysLeft}d`}
                     </span>}
                     <span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(255,255,255,0.07)",color:tC,fontWeight:600,flexShrink:0}}>{TYPE_LABELS[pr.type]}</span>
@@ -1013,30 +1122,72 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
                     <button onClick={()=>setModal({type:"editProject",project:{...pr,start_date:pr.start_date||"",end_date:pr.end_date||"",budget_hours:pr.budget_hours||""}})} style={{...BG,padding:"4px 7px",fontSize:10,flexShrink:0}} title="Editar"><i className="ti ti-pencil"/></button>
                     <button onClick={()=>toggleProjectInMonth(monthId,pr.id,false)} style={{...BRed,padding:"4px 7px",fontSize:10,flexShrink:0}} title="Quitar"><i className="ti ti-x"/></button>
                   </div>
-                  {pr.budget_hours>0&&(()=>{
-                    const cumH=pr.type==="fee"?projCumulativeH(pr.id,data.allocs,monthId):projCumulativeH(pr.id,data.allocs);
-                    const remH=Math.max(0,pr.budget_hours-cumH);
-                    const cumPct=Math.round(cumH/pr.budget_hours*100);
-                    const isOver=cumPct>100, isWarn=cumPct>85&&!isOver;
+                  {(()=>{
+                    const isFee=pr.type==="fee";
+                    const cumH=isFee?projCumulativeH(pr.id,data.allocs,monthId):projCumulativeH(pr.id,data.allocs);
+                    const hasBudget=pr.budget_hours>0;
+                    if(!hasBudget&&!isFee) return null;
+                    const cumPct=hasBudget?Math.round(cumH/pr.budget_hours*100):null;
+                    const remH=hasBudget?Math.max(0,pr.budget_hours-cumH):null;
+                    const isOver=cumPct!==null&&cumPct>100, isWarn=cumPct!==null&&cumPct>85&&!isOver;
                     return(<div style={{marginTop:5,paddingLeft:17}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
-                        <span style={{fontSize:9,color:T.d}}>{pr.type==="fee"?"HH este mes":"HH acumuladas"}</span>
-                        <div style={{display:"flex",gap:6}}>
-                          <span style={{fontSize:9,fontFamily:"monospace",color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>{fmt(cumH)}h / {pr.budget_hours}h ({cumPct}%)</span>
-                          {remH>0&&<span style={{fontSize:9,color:T.d}}>· quedan <strong style={{color:"#fff"}}>{fmt(remH)}h</strong></span>}
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                        <span style={{fontSize:9,color:T.d,fontWeight:600,textTransform:"uppercase",letterSpacing:".05em"}}>{isFee?"HH este mes":"HH acumuladas"}</span>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          {hasBudget?(
+                            <>
+                              <span style={{fontSize:9,fontFamily:"monospace",color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>{fmt(cumH)}h / {pr.budget_hours}h ({cumPct}%)</span>
+                              {remH>0&&<span style={{fontSize:9,color:T.d}}>faltan <strong style={{color:"#fff"}}>{fmt(remH)}h</strong></span>}
+                              {isOver&&<span style={{fontSize:9,color:"#FF4757",fontWeight:700}}>+{fmt(cumH-pr.budget_hours)}h excedido</span>}
+                            </>
+                          ):(
+                            <span style={{fontSize:9,color:"#fff",fontFamily:"monospace",fontWeight:700}}>{fmt(cumH)}h</span>
+                          )}
                         </div>
                       </div>
-                      <div style={{height:4,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden",position:"relative"}}>
+                      {hasBudget&&(<div style={{height:4,background:"var(--c-subtle2)",borderRadius:2,overflow:"hidden",position:"relative"}}>
                         <div style={{height:"100%",width:`${Math.min(cumPct,100)}%`,background:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",borderRadius:2}}/>
-                        {pr.type!=="fee"&&tot>0&&(<div style={{position:"absolute",top:0,left:`${Math.min((cumH-tot)/pr.budget_hours*100,100)}%`,width:`${Math.min(tot/pr.budget_hours*100,100-(cumH-tot)/pr.budget_hours*100)}%`,height:"100%",background:"rgba(255,255,255,0.35)",borderRadius:2}} title={`Este mes: ${fmt(tot)}h`}/>)}
-                      </div>
-                      {pr.type!=="fee"&&<div style={{fontSize:9,color:T.d,marginTop:2}}>Este mes: {fmt(tot)}h</div>}
+                        {!isFee&&tot>0&&cumH>0&&(<div style={{position:"absolute",top:0,left:`${Math.min((cumH-tot)/pr.budget_hours*100,99)}%`,width:`${Math.min(tot/pr.budget_hours*100,100-(cumH-tot)/pr.budget_hours*100)}%`,height:"100%",background:"rgba(255,255,255,0.35)",borderRadius:2}}/>)}
+                      </div>)}
+                      {!isFee&&tot>0&&<div style={{fontSize:9,color:T.d,marginTop:2}}>Este mes: {fmt(tot)}h</div>}
+                      {isFee&&!hasBudget&&<div style={{fontSize:9,color:"rgba(255,165,2,0.7)",marginTop:2}}>Sin presupuesto definido — edita el proyecto para agregar HH mensuales</div>}
                     </div>);
                   })()}
                 </div>);
               })}
               {/* Projects NOT in this month */}
-              {(()=>{const notIn=cur.allTeamProjects.filter(p=>!cur.monthProjIds.has(p.id));if(!notIn.length)return null;return(<div style={{marginTop:16}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:8}}>Agregar al mes</div>{notIn.map(pr=>{const tC={fee:A,proyecto:"#2ED573",interno:T.d}[pr.type];return(<div key={pr.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}><span style={{width:7,height:7,borderRadius:"50%",background:"rgba(255,255,255,0.15)",flexShrink:0}}/><span style={{flex:1,fontSize:12,color:T.m,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</span><span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"rgba(255,255,255,0.05)",color:tC,fontWeight:600,flexShrink:0}}>{TYPE_LABELS[pr.type]}</span><button onClick={()=>toggleProjectInMonth(monthId,pr.id,true)} style={{...BP,padding:"4px 10px",fontSize:10,flexShrink:0}}><i className="ti ti-plus"/>Añadir</button></div>);})}</div>);})()}
+              {(()=>{const notIn=cur.allTeamProjects.filter(p=>!cur.monthProjIds.has(p.id));if(!notIn.length)return null;return(<div style={{marginTop:16}}><div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:8}}>Agregar proyecto al mes</div>{notIn.map(pr=>{const tC={fee:A,proyecto:"#2ED573",interno:T.d}[pr.type];return(<div key={pr.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}><span style={{width:7,height:7,borderRadius:"50%",background:"rgba(255,255,255,0.15)",flexShrink:0}}/><span style={{flex:1,fontSize:12,color:T.m,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.name}</span><span style={{fontSize:10,padding:"2px 8px",borderRadius:20,background:"var(--c-div2)",color:tC,fontWeight:600,flexShrink:0}}>{TYPE_LABELS[pr.type]}</span><button onClick={()=>toggleProjectInMonth(monthId,pr.id,true)} style={{...BP,padding:"4px 10px",fontSize:10,flexShrink:0}}><i className="ti ti-plus"/>Añadir</button></div>);})}</div>);})()}
+
+              {/* Cross-team profiles: people from other teams */}
+              {(()=>{
+                const inMonthIds=new Set(cur.people.map(p=>p.id));
+                const otherTeamPeople=data.people.filter(p=>
+                  p.is_active&&
+                  p.team_id!==cur.teamObj.id&&
+                  !inMonthIds.has(p.id)
+                );
+                if(!otherTeamPeople.length) return null;
+                return(<div style={{marginTop:20}}>
+                  <div style={{fontSize:10,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",marginBottom:4}}>Perfiles de otros equipos</div>
+                  <div style={{fontSize:10,color:T.d,marginBottom:10}}>Perfiles compartidos que participan en proyectos de este equipo. Sus horas se suman a su ocupación total.</div>
+                  {otherTeamPeople.map(p=>{
+                    const homeTeam=data.teams.find(t=>t.id===p.team_id);
+                    return(<div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                      <div style={{width:28,height:28,borderRadius:"50%",background:"var(--c-div2)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.d,flexShrink:0}}>{p.initials||ini(p.name)}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T.m}}>{p.name}</div>
+                        <div style={{fontSize:10,color:T.d,display:"flex",gap:6,alignItems:"center"}}>
+                          {p.role||"Sin cargo"}
+                          <span style={{fontSize:9,padding:"1px 5px",borderRadius:6,background:"rgba(255,255,255,0.07)",color:T.d}}>equipo {homeTeam?.slug||"?"}</span>
+                        </div>
+                      </div>
+                      <button onClick={()=>togglePersonInMonth(monthId,p,true)} style={{...BP,padding:"5px 12px",fontSize:11}}>
+                        <i className="ti ti-user-plus"/>Agregar al mes
+                      </button>
+                    </div>);
+                  })}
+                </div>);
+              })()}
               <button onClick={()=>setModal({type:"editProject",project:{name:"",type:"proyecto"}})} style={{...BG,marginTop:14,fontSize:11}}><i className="ti ti-plus"/>Nuevo proyecto</button>
             </div>
           </div>);
@@ -1049,7 +1200,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
             {teamPeopleActive.map(p=>{const tot=pTotals[p.id]??0;const avH=data.avail.find(a=>a.month_id===monthId&&a.person_id===p.id)?.available_hours??p.default_hours;const p2=pct(tot,avH),col=oc(p2/100);return(<div key={p.id} style={{...glass,padding:18}}><div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:12}}><div style={{width:40,height:40,borderRadius:"50%",background:ob(p2/100),border:`1.5px solid ${col}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:col}}>{p.initials||ini(p.name)}</div><div style={{display:"flex",gap:4}}><button onClick={()=>setModal({type:"editPerson",person:{...p,default_hours:String(p.default_hours)}})} style={{...BG,padding:"4px 8px",fontSize:11}}><i className="ti ti-pencil"/></button><button onClick={()=>deactivatePerson(p.id,p.name)} style={{...BRed,padding:"4px 8px"}}><i className="ti ti-user-minus"/></button></div></div><div style={{fontWeight:700,fontSize:13,color:"#fff",marginBottom:3}}>{p.name}</div><div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
                   <div style={{fontSize:11,color:A,fontWeight:600}}>{p.role||"Sin cargo"}</div>
                   {(p.contract_type||"planta")==="freelance"&&<span style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"rgba(255,165,2,0.15)",color:"#FFA502",fontWeight:700,border:"1px solid rgba(255,165,2,0.3)"}}>FREELANCE</span>}
-                </div><div style={{height:4,borderRadius:2,background:"rgba(255,255,255,0.06)",overflow:"hidden",marginBottom:6}}><div style={{height:"100%",borderRadius:2,width:`${Math.min(p2,100)}%`,background:col}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:10}}><span style={{color:col,fontWeight:700}}>{p2}% ocupado</span><span style={{color:T.d}}>{avH} HH · {p.default_hours} default</span></div></div>);})}
+                </div><div style={{height:4,borderRadius:2,background:"var(--c-subtle2)",overflow:"hidden",marginBottom:6}}><div style={{height:"100%",borderRadius:2,width:`${Math.min(p2,100)}%`,background:col}}/></div><div style={{display:"flex",justifyContent:"space-between",fontSize:10}}><span style={{color:col,fontWeight:700}}>{p2}% ocupado</span><span style={{color:T.d}}>{avH} HH · {p.default_hours} default</span></div></div>);})}
             {teamPeopleActive.length===0&&(<div style={{...glass,padding:28,textAlign:"center",gridColumn:"1/-1"}}><i className="ti ti-users-off" style={{fontSize:36,color:T.d,display:"block",marginBottom:12}}/><div style={{color:T.m,fontSize:13}}>No hay personas activas en el equipo {team}.</div><button onClick={()=>setModal({type:"editPerson",person:{name:"",role:"",initials:"",default_hours:"160"}})} style={{...BP,margin:"16px auto 0"}}><i className="ti ti-user-plus"/>Agregar primera persona</button></div>)}
           </div>);
         })()}
@@ -1084,7 +1235,7 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
               </div>);
             })}
           </div>)}
-          <div style={glass}><div style={{padding:"12px 18px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Proyectos · {cur.month.label}</span><button onClick={()=>setModal({type:"editProject",project:{name:"",type:"proyecto"}})} style={{...BP,fontSize:11,padding:"6px 12px"}}><i className="ti ti-plus"/>Nuevo proyecto</button></div>{projects.length===0&&<div style={{padding:28,textAlign:"center",color:T.d,fontSize:13}}>No hay proyectos activos para el equipo {team}.</div>}{projects.map((p,pi)=>{const tot=people.reduce((s,pe)=>s+getH(pe.id,p.id),0);const assigned=people.filter(pe=>getH(pe.id,p.id)>0);const tC={fee:[A,"rgba(57,18,250,0.12)"],proyecto:["#2ED573","rgba(46,213,115,0.1)"],interno:[T.d,"rgba(255,255,255,0.04)"]}[p.type];const today2=new Date();today2.setHours(0,0,0,0);
+          <div style={glass}><div style={{padding:"12px 18px",borderBottom:"1px solid rgba(255,255,255,0.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,color:T.d,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Proyectos · {cur.month.label}</span><button onClick={()=>setModal({type:"editProject",project:{name:"",type:"proyecto"}})} style={{...BP,fontSize:11,padding:"6px 12px"}}><i className="ti ti-plus"/>Nuevo proyecto</button></div>{projects.length===0&&<div style={{padding:28,textAlign:"center",color:T.d,fontSize:13}}>No hay proyectos activos para el equipo {team}.</div>}{projects.map((p,pi)=>{const tot=people.reduce((s,pe)=>s+getH(pe.id,p.id),0);const assigned=people.filter(pe=>getH(pe.id,p.id)>0);const tC={fee:[A,"rgba(57,18,250,0.12)"],proyecto:["#2ED573","rgba(46,213,115,0.1)"],interno:[T.d,"var(--c-subtle)"]}[p.type];const today2=new Date();today2.setHours(0,0,0,0);
                   const endD=p.end_date?new Date(p.end_date+"T12:00:00"):null;
                   const startD=p.start_date?new Date(p.start_date+"T12:00:00"):null;
                   const daysLeft=endD?Math.round((endD-today2)/(1000*60*60*24)):null;
@@ -1113,41 +1264,69 @@ if(monthId){const mp=await db("cap_month_projects").insert({month_id:monthId,pro
                       </div>
                     </div>
                     {(()=>{
-                      // Cumulative hours: for fees use only current month, for projects sum all months
-                      const cumH=p.type==="fee"?projCumulativeH(p.id,data.allocs,monthId):projCumulativeH(p.id,data.allocs);
-                      const remH=p.budget_hours>0?Math.max(0,p.budget_hours-cumH):null;
-                      const cumPct=p.budget_hours>0?Math.round(cumH/p.budget_hours*100):null;
+                      const isFee=p.type==="fee";
+                      // Fee: hours this month vs monthly budget
+                      // Proyecto: cumulative hours all months vs total budget
+                      const cumH=isFee?projCumulativeH(p.id,data.allocs,monthId):projCumulativeH(p.id,data.allocs);
+                      const hasBudget=p.budget_hours>0;
+                      const remH=hasBudget?Math.max(0,p.budget_hours-cumH):null;
+                      const cumPct=hasBudget?Math.round(cumH/p.budget_hours*100):null;
                       const isOver=cumPct!==null&&cumPct>100;
                       const isWarn=cumPct!==null&&cumPct>85&&!isOver;
-                      return(pctTime!==null||cumPct!==null)&&(<div style={{padding:"0 18px 10px 38px"}}>
-                        {/* Time bar */}
-                        {pctTime!==null&&(<div style={{marginBottom:cumPct!==null?8:0}}>
-                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                            <span style={{fontSize:9,color:T.d}}>Tiempo transcurrido</span>
-                            <span style={{fontSize:9,color:isOverdue?"#FF4757":pctTime>85?"#FFA502":T.d,fontWeight:700}}>{pctTime}% del plazo</span>
-                          </div>
-                          <div style={{height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${pctTime}%`,background:isOverdue?"#FF4757":pctTime>85?"#FFA502":A,borderRadius:2}}/>
-                          </div>
-                        </div>)}
-                        {/* Budget bar — cumulative */}
-                        {cumPct!==null&&(<div>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                            <span style={{fontSize:9,color:T.d}}>{p.type==="fee"?"HH este mes":"HH acumuladas (todos los meses)"}</span>
+                      // Always show progress for fee (even without budget) and for proyecto with budget
+                      const showProgress=isFee||hasBudget;
+                      if(!showProgress&&pctTime===null) return null;
+                      return(<div style={{padding:"0 18px 10px 38px"}}>
+                        {/* Fee: monthly progress — always show */}
+                        {isFee&&(<div style={{marginBottom:pctTime!==null?8:0}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <span style={{fontSize:9,color:T.d,fontWeight:600,textTransform:"uppercase",letterSpacing:".05em"}}>HH este mes</span>
                             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                              <span style={{fontSize:9,color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>{fmt(cumH)}h / {p.budget_hours}h ({cumPct}%)</span>
-                              {remH!==null&&remH>0&&<span style={{fontSize:9,color:T.d}}>quedan <strong style={{color:"#fff"}}>{fmt(remH)}h</strong></span>}
-                              {isOver&&<span style={{fontSize:9,color:"#FF4757",fontWeight:700}}>+{fmt(cumH-p.budget_hours)}h excedido</span>}
+                              {hasBudget?(
+                                <>
+                                  <span style={{fontSize:10,fontFamily:"monospace",color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>{fmt(cumH)}h / {p.budget_hours}h</span>
+                                  <span style={{fontSize:10,fontFamily:"monospace",color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>({cumPct}%)</span>
+                                  {remH>0&&<span style={{fontSize:9,color:T.d}}>— faltan <strong style={{color:"#fff"}}>{fmt(remH)}h</strong></span>}
+                                  {isOver&&<span style={{fontSize:9,color:"#FF4757",fontWeight:700}}>+{fmt(cumH-p.budget_hours)}h excedido</span>}
+                                </>
+                              ):(
+                                <span style={{fontSize:10,fontFamily:"monospace",color:"#fff",fontWeight:700}}>{fmt(cumH)}h asignadas</span>
+                              )}
                             </div>
                           </div>
-                          <div style={{height:5,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",position:"relative"}}>
+                          {hasBudget&&(<div style={{height:5,background:"var(--c-subtle2)",borderRadius:3,overflow:"hidden"}}>
                             <div style={{height:"100%",width:`${Math.min(cumPct,100)}%`,background:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",borderRadius:3,transition:"width .3s"}}/>
-                            {/* Month's contribution highlighted */}
-                            {p.type!=="fee"&&tot>0&&(<div style={{position:"absolute",top:0,left:`${Math.min((cumH-tot)/p.budget_hours*100,100)}%`,width:`${Math.min(tot/p.budget_hours*100,100-(cumH-tot)/p.budget_hours*100)}%`,height:"100%",background:"rgba(255,255,255,0.3)",borderRadius:3}} title={`Este mes: ${fmt(tot)}h`}/>)}
-                          </div>
-                          {/* Month breakdown for proyecto type */}
-                          {p.type!=="fee"&&(<div style={{fontSize:9,color:T.d,marginTop:3}}>Este mes: <strong style={{color:"#fff"}}>{fmt(tot)}h</strong> · Total acumulado desde inicio</div>)}
+                          </div>)}
+                          {!hasBudget&&<div style={{fontSize:9,color:T.d,marginTop:2}}>Define las HH presupuestadas del fee para medir cumplimiento</div>}
                         </div>)}
+                        {/* Proyecto: time bar + cumulative budget */}
+                        {!isFee&&(<>
+                          {pctTime!==null&&(<div style={{marginBottom:hasBudget?8:0}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                              <span style={{fontSize:9,color:T.d}}>Tiempo del proyecto</span>
+                              <span style={{fontSize:9,color:isOverdue?"#FF4757":pctTime>85?"#FFA502":T.d,fontWeight:700}}>{pctTime}% del plazo — {isOverdue?`vencido hace ${Math.abs(daysLeft)}d`:daysLeft===0?"vence hoy":`${daysLeft}d restantes`}</span>
+                            </div>
+                            <div style={{height:3,background:"var(--c-subtle2)",borderRadius:2,overflow:"hidden"}}>
+                              <div style={{height:"100%",width:`${pctTime}%`,background:isOverdue?"#FF4757":pctTime>85?"#FFA502":A,borderRadius:2}}/>
+                            </div>
+                          </div>)}
+                          {hasBudget&&(<div>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                              <span style={{fontSize:9,color:T.d}}>Presupuesto acumulado</span>
+                              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                                <span style={{fontSize:9,fontFamily:"monospace",color:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",fontWeight:700}}>{fmt(cumH)}h / {p.budget_hours}h ({cumPct}%)</span>
+                                {remH>0&&<span style={{fontSize:9,color:T.d}}>quedan <strong style={{color:"#fff"}}>{fmt(remH)}h</strong></span>}
+                                {isOver&&<span style={{fontSize:9,color:"#FF4757",fontWeight:700}}>+{fmt(cumH-p.budget_hours)}h excedido</span>}
+                              </div>
+                            </div>
+                            <div style={{height:5,background:"var(--c-subtle2)",borderRadius:3,overflow:"hidden",position:"relative"}}>
+                              <div style={{height:"100%",width:`${Math.min(cumPct,100)}%`,background:isOver?"#FF4757":isWarn?"#FFA502":"#2ED573",borderRadius:3}}/>
+                              {/* This month's contribution */}
+                              {tot>0&&cumH>0&&(<div style={{position:"absolute",top:0,left:`${Math.min((cumH-tot)/p.budget_hours*100,99)}%`,width:`${Math.min(tot/p.budget_hours*100,100-(cumH-tot)/p.budget_hours*100)}%`,height:"100%",background:"rgba(255,255,255,0.35)",borderRadius:3}} title={`Este mes: ${fmt(tot)}h`}/>)}
+                            </div>
+                            <div style={{fontSize:9,color:T.d,marginTop:3}}>Este mes: <strong style={{color:"#fff"}}>{fmt(tot)}h</strong></div>
+                          </div>)}
+                        </>)}
                       </div>);
                     })()}
                   </div>);})}</div></div>);
